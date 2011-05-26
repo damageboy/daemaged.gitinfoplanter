@@ -142,25 +142,17 @@ let patchAssembly targetAsm targetPatchedAsm (repoDir : string) (baseDate : Date
   let fileInfoAttrDef = corlibDef.MainModule.GetType ("System.Reflection.AssemblyInformationalVersionAttribute");
   
   let fileVersionAttrCtor = fileVersionAttrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 1)
-  let fileInfoAttrCtor = fileInfoAttrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 2)
+  let fileInfoAttrCtor = fileInfoAttrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 1)
 
   let fileVersionAttr = new CustomAttribute (md.Import(fileVersionAttrCtor));
   fileVersionAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, fileVersionStr));
 
   let fileInfoAttr = new CustomAttribute (md.Import(fileInfoAttrCtor));
-  fileVersionAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, fileInfoStr));
+  fileInfoAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, fileInfoStr));
 
-  md.CustomAttributes.Add(fileVersionAttr)
-  md.CustomAttributes.Add(fileInfoAttr)
+  ad.CustomAttributes.Add(fileVersionAttr)
+  ad.CustomAttributes.Add(fileInfoAttr)
 
-
-  
-
-  
-
-  //ad.CustomAttributes.Add(new CustomAttribute( |> Seq.fi  findIndex (isAttrOfType typeof<AssemblyVersionAttribute>)
-  
-  
   // Save the new asm
   let wp = new WriterParameters(WriteSymbols = pdbExists, StrongNameKeyPair = !snkp)
   if (wp.WriteSymbols) then wp.SymbolWriterProvider <- new PdbWriterProvider()
