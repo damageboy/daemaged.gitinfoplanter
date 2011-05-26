@@ -1,0 +1,4 @@
+*.suo
+*.ReSharper.user
+daemaged.gitversionpatcher/bin/
+daemaged.gitversionpatcher/obj/
