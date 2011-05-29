@@ -1,4 +1,12 @@
-﻿open System
+﻿#if INTERACTIVE
+#I "..\deplibs"
+#r "NGit.dll"
+#r "Sharpen.dll"
+#r "Mono.Cecil.dll"
+#r "Mono.Cecil.Pdb.dll"
+#endif
+
+open System
 open Sharpen
 open Mono.Cecil
 open Mono.Cecil.Pdb
@@ -17,6 +25,13 @@ open NGit.Revwalk
 open NGit.Treewalk
 open NGit.Treewalk.Filter
 
+
+#if INTERACTIVE
+#load "gitutils.fs"
+#endif
+
+// A bunch of git utils
+open gitutils
 
 // Append a build-date number to the version
 let generateFileVersion (ver : Version) (baseDate : DateTime) =
@@ -40,51 +55,22 @@ let generateFileVersion (ver : Version) (baseDate : DateTime) =
 // master/548/c769ca88c037e9737b6669d3405c954ff4632d9e
 
 let generateVersionInfoFromGit (repoPath : string) = 
-  let r = (new FileRepositoryBuilder()).SetWorkTree(new FilePath(repoPath)).Build()
+  let r = repoPath |> buildRepo
   
-  let getRev revStr (r : Repository) = 
-    let headId = r.Resolve(revStr);
-    let rw = new RevWalk(r)
-    rw.ParseCommit (headId)  
-
-  let getHead (r : Repository) =   
-    getRev Constants.HEAD r
-
-
   let hc = r |> getHead
   let omc = r|> getRev "refs/remotes/origin/master";  
 
+  let modifiedCount (r : Repository) = 
+    r |> getRepoStatus |> modifiedPaths |> filterSubmodules r |> Seq.length
 
-  let getRepoStatus (r : Repository) = 
-    let diff = new IndexDiff(r, Constants.HEAD, new FileTreeIterator(r))  
-    ignore(diff.Diff());
-    new Status(diff);
-
-  let modifiedPaths (stat : Status) = 
-    stat.GetModified() |> 
-    Seq.append (stat.GetAdded()) |> 
-    Seq.append (stat.GetMissing()) |> 
-    Seq.append (stat.GetChanged()) |>
-    Seq.append (stat.GetRemoved()) |>
-    Seq.append (stat.GetRemoved()) |>
-    Seq.filter (fun (i : String) -> not(i.StartsWith("extsrc")))
-
-  let modifiedCount (stat : Status) = 
-    stat |> modifiedPaths |> Seq.length
-
-  let modifiedNum = r |> getRepoStatus |> modifiedCount
+  let modifiedNum = r |> modifiedCount 
   let modifiedStr = match modifiedNum with
     | 0 -> ""
     | _ -> "M"
 
-  let modifiedList = r |> getRepoStatus |> modifiedPaths |> Seq.toArray
-  printfn "%A" modifiedList
-
-  let getRevNo (rc : RevCommit) (r : Repository) = 
-    let rw = new RevWalk(r)
-    rw.SetRetainBody(false)
-    rw.MarkStart(rc)
-    rw |> Seq.length
+  // For debugging purposes
+  //let modifiedList = r |> getRepoStatus |> modifiedPaths |> Seq.toArray
+  //printfn "%A" modifiedList
   
   let localRevNo = r |> getRevNo hc
   let originRevNo = r |> getRevNo omc
@@ -94,7 +80,10 @@ let generateVersionInfoFromGit (repoPath : string) =
     | _ -> "+" + aheadOfOriginBy.ToString()
   String.Format("{0}/{1}{2}{3}/{4}", r.GetBranch(), localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
 
+// Patch a single assembly with AssemblyFileVersionAttribute + AssemblyInformationalVersionAttribute
+// containing computed values that describe the build-version more effectively than an incremental #
 let patchAssembly targetAsm targetPatchedAsm (repoDir : string) (baseDate : DateTime) nopdb verbose snkp =
+
   // Read the existing assembly
   let targetInfo = new FileInfo(targetAsm)
   let pdbFileName = targetInfo.FullName.Remove(targetInfo.FullName.Length - targetInfo.Extension.Length) + ".pdb"
@@ -115,22 +104,23 @@ let patchAssembly targetAsm targetPatchedAsm (repoDir : string) (baseDate : Date
   
   // Do it
   let ad = AssemblyDefinition.ReadAssembly(targetAsm, rp)
+
+  // Force signing the new assembly if we were passed a SNK file ref
   let nullsnkp = ref (null : StrongNameKeyPair)
   if snkp <> nullsnkp then
     let adName = ad.Name
     adName.HashAlgorithm <- AssemblyHashAlgorithm.SHA1
     adName.PublicKey <- (!snkp).PublicKey    
     ad.Name.Attributes <- ad.Name.Attributes ||| AssemblyAttributes.PublicKey
-  // Replace all asm refs that match the list of regex to the new target name
-  let md = ad.MainModule
-  let printdbg s1 s2 = 
-    if verbose then
-      printfn "Changing %A <- %A" s1 s2
-    true
 
+  // Get the main module for future ref
+  let md = ad.MainModule
+
+  // Check the attribute type in a cecil compatible fashion
   let isAttrOfType (t : Type) (attr : CustomAttribute) =
     t.FullName = attr.Constructor.DeclaringType.FullName
 
+  // Get the current version in the assembly definition and generate a file version out of it
   let fileVersionStr = generateFileVersion ad.Name.Version baseDate
   let fileInfoStr = fileVersionStr + "/" + (generateVersionInfoFromGit repoDir)
 
