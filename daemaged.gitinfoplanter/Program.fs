@@ -64,7 +64,8 @@ let generateVersionInfoFromGit (repoPath : string) =
     r |> getRepoStatus |> modifiedPaths |> filterSubmodules r |> Seq.length
 
   let modifiedNum = r |> modifiedCount 
-  let modifiedStr = match modifiedNum with
+  let modifiedStr = 
+    match modifiedNum with
     | 0 -> ""
     | _ -> "M"
 
@@ -75,7 +76,8 @@ let generateVersionInfoFromGit (repoPath : string) =
   let localRevNo = r |> getRevNo hc
   let originRevNo = r |> getRevNo omc
   let aheadOfOriginBy = localRevNo - originRevNo
-  let aheadOfOriginByStr = match aheadOfOriginBy with
+  let aheadOfOriginByStr = 
+    match aheadOfOriginBy with
     | 0 -> ""
     | _ -> "+" + aheadOfOriginBy.ToString()
   String.Format("{0}/{1}{2}{3}/{4}", r.GetBranch(), localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
@@ -97,7 +99,8 @@ let patchAssembly targetAsm targetPatchedAsm (repoDir : string) (baseDate : Date
   // Read the symbols if necessary/specified
   if (rp.ReadSymbols) then rp.SymbolReaderProvider <- new PdbReaderProvider()
   if verbose then
-    let out = match rp.ReadSymbols with
+    let out = 
+      match rp.ReadSymbols with
       | true -> ""
       | false -> "out"
     printfn "Reading %A with%A symbols" targetAsm out
@@ -148,7 +151,8 @@ let patchAssembly targetAsm targetPatchedAsm (repoDir : string) (baseDate : Date
   if (wp.WriteSymbols) then wp.SymbolWriterProvider <- new PdbWriterProvider()
 
   if verbose then
-    let out = match wp.WriteSymbols with
+    let out = 
+      match wp.WriteSymbols with
       | true -> ""
       | false -> "out"
     printfn "Reading %A with%A symbols" targetAsm out

@@ -42,9 +42,6 @@
     <Compile Include="Arg.fs" />
     <Compile Include="gitutils.fs" />
     <Compile Include="Program.fs" />
-    <None Include="App.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="gitutils-test.fsx" />
   </ItemGroup>
   <ItemGroup>
