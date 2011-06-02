@@ -15,6 +15,7 @@ open System.IO
 open System.Collections.Generic
 open System.Text.RegularExpressions
 open System.Reflection;
+open System.Threading.Tasks
 open Microsoft.FSharp.Text
 open System.Reflection
 
@@ -84,7 +85,7 @@ let generateVersionInfoFromGit (repoPath : string) =
 
 // Patch a single assembly with AssemblyFileVersionAttribute + AssemblyInformationalVersionAttribute
 // containing computed values that describe the build-version more effectively than an incremental #
-let patchAssembly targetAsm targetPatchedAsm (repoDir : string) (baseDate : DateTime) nopdb verbose snkp =
+let patchAssembly targetAsm targetPatchedAsm (gitInfo : string) (baseDate : DateTime) nopdb verbose snkp =
 
   // Read the existing assembly
   let targetInfo = new FileInfo(targetAsm)
@@ -123,41 +124,74 @@ let patchAssembly targetAsm targetPatchedAsm (repoDir : string) (baseDate : Date
   let isAttrOfType (t : Type) (attr : CustomAttribute) =
     t.FullName = attr.Constructor.DeclaringType.FullName
 
+  let findCustomAttribute (ad : AssemblyDefinition) (t : Type) =
+    let attrs =
+      ad.CustomAttributes     
+      |> Seq.filter (fun attr -> isAttrOfType t attr)
+
+    if (Seq.isEmpty attrs || (Seq.length attrs) > 1) then
+      None
+    else
+      Some(Seq.head attrs)
+
+  let removeCustomAttrTypes (ad : AssemblyDefinition) (t : Type)  =
+    let existingAttrIdx = 
+      ad.CustomAttributes 
+      |> Seq.mapi (fun i attr -> (i, attr))     
+      |> Seq.filter (fun (i, attr) -> isAttrOfType t attr)
+      |> Seq.map (fun (i, attr) -> i) |> Seq.toArray |> Array.rev
+    existingAttrIdx |> Seq.iter ad.CustomAttributes.RemoveAt
+  
+  let currentFileVersionStr = 
+    match findCustomAttribute ad typeof<AssemblyFileVersionAttribute> with
+    | None -> ""
+    | Some(attr) -> (attr.ConstructorArguments.[0].Value :?> string)
+
+  let currentFileInfoStr = 
+    match findCustomAttribute ad typeof<AssemblyInformationalVersionAttribute> with
+    | None -> ""
+    | Some(attr) -> (attr.ConstructorArguments.[0].Value :?> string)
+
+  let insertCustomAttr (ad : AssemblyDefinition) (t : Type) (ctorArg : string) =
+    // Inject new attributes into the assembly
+    let strType = md.TypeSystem.String
+    let corlib = md.TypeSystem.Corlib :?> AssemblyNameReference
+    let corlibDef = md.AssemblyResolver.Resolve(new AssemblyNameReference ("mscorlib", corlib.Version, PublicKeyToken = corlib.PublicKeyToken))
+    let attrDef = corlibDef.MainModule.GetType t.FullName;
+    let attrCtor = attrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 1 && m.Parameters.[0].ParameterType.FullName = strType.FullName)
+    let newAttr = new CustomAttribute (md.Import(attrCtor));
+    newAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, ctorArg));
+    ad.CustomAttributes.Add(newAttr)
+
   // Get the current version in the assembly definition and generate a file version out of it
   let fileVersionStr = generateFileVersion ad.Name.Version baseDate
-  let fileInfoStr = fileVersionStr + "/" + (generateVersionInfoFromGit repoDir)
+  let fileInfoStr = fileVersionStr + "/" + gitInfo
 
-  let strType = md.TypeSystem.String
-  let corlib = md.TypeSystem.Corlib :?> AssemblyNameReference
-  let corlibDef = md.AssemblyResolver.Resolve(new AssemblyNameReference ("mscorlib", corlib.Version, PublicKeyToken = corlib.PublicKeyToken))
+  let mutable hasChanges = false
 
-  let fileVersionAttrDef = corlibDef.MainModule.GetType ("System.Reflection.AssemblyFileVersionAttribute");
-  let fileInfoAttrDef = corlibDef.MainModule.GetType ("System.Reflection.AssemblyInformationalVersionAttribute");
-  
-  let fileVersionAttrCtor = fileVersionAttrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 1)
-  let fileInfoAttrCtor = fileInfoAttrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 1)
+  if (currentFileVersionStr <> fileVersionStr) then
+    removeCustomAttrTypes ad typeof<AssemblyFileVersionAttribute>
+    insertCustomAttr ad typeof<AssemblyFileVersionAttribute> fileVersionStr
+    hasChanges <- true
 
-  let fileVersionAttr = new CustomAttribute (md.Import(fileVersionAttrCtor));
-  fileVersionAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, fileVersionStr));
 
-  let fileInfoAttr = new CustomAttribute (md.Import(fileInfoAttrCtor));
-  fileInfoAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, fileInfoStr));
-
-  ad.CustomAttributes.Add(fileVersionAttr)
-  ad.CustomAttributes.Add(fileInfoAttr)
+  if (currentFileInfoStr <> fileInfoStr) then
+    removeCustomAttrTypes ad typeof<AssemblyInformationalVersionAttribute> 
+    insertCustomAttr ad typeof<AssemblyInformationalVersionAttribute> fileInfoStr
+    hasChanges <- true
 
   // Save the new asm
-  let wp = new WriterParameters(WriteSymbols = pdbExists, StrongNameKeyPair = !snkp)
-  if (wp.WriteSymbols) then wp.SymbolWriterProvider <- new PdbWriterProvider()
+  if hasChanges then
+    let wp = new WriterParameters(WriteSymbols = pdbExists, StrongNameKeyPair = !snkp)
+    if (wp.WriteSymbols) then wp.SymbolWriterProvider <- new PdbWriterProvider()
 
-  if verbose then
-    let out = 
-      match wp.WriteSymbols with
-      | true -> ""
-      | false -> "out"
-    printfn "Reading %A with%A symbols" targetAsm out
-
-  ad.Write(new FileStream(targetPatchedAsm, FileMode.Create), wp)
+    if verbose then
+      let out = 
+        match wp.WriteSymbols with
+        | true -> ""
+        | false -> "out"
+      printfn "Reading %A with%A symbols" targetAsm out
+    ad.Write(new FileStream(targetPatchedAsm, FileMode.Create), wp)
 
 
 [<EntryPoint>]  
@@ -169,6 +203,7 @@ let main (args : string[]) =
   let verbose = ref false
   let matchList = new List<list<Regex>>()
   let noPdb = ref false
+  let skipMissing = ref false
   let keyPair = ref (null : StrongNameKeyPair)
   let repoDir = ref ""
   let baseDate = ref DateTime.Now
@@ -176,14 +211,15 @@ let main (args : string[]) =
   let ic = System.Globalization.CultureInfo.InvariantCulture
   
   let specs =
-    ["-v",        ArgType.Set verbose,                                          "Display additional information"
-     "--repo",    ArgType.String (fun s -> repoDir := s),                       "Path the git repository"
-     "--nopdb",   ArgType.Set noPdb,                                            "Skip creation of PDB files"
-     "--basedate", ArgType.String 
-                   (fun s -> baseDate := 
-                               DateTime.ParseExact(s, "yyyy-MM-dd", ic)),       "Base date for build date"     
-     "--keyfile", ArgType.String (fun s -> keyPair := snkp s),                  "Key pair to sign the assembly with"
-     "--",        ArgType.Rest   addArg,                                        "Stop parsing command line"
+    ["-v",             ArgType.Set verbose,                                          "Display additional information"
+     "--repo",         ArgType.String (fun s -> repoDir := s),                       "Path the git repository"
+     "--nopdb",        ArgType.Set noPdb,                                            "Skip creation of PDB files"
+     "--skip-missing", ArgType.Set skipMissing,                                            "Skip creation of PDB files"
+     "--basedate",     ArgType.String 
+                          (fun s -> baseDate := 
+                               DateTime.ParseExact(s, "yyyy-MM-dd", ic)),            "Base date for build date"     
+     "--keyfile",      ArgType.String (fun s -> keyPair := snkp s),                  "Key pair to sign the assembly with"
+     "--",             ArgType.Rest   addArg,                                        "Stop parsing command line"
     ] |> List.map (fun (sh, ty, desc) -> ArgInfo(sh, ty, desc))
  
   let () =
@@ -199,14 +235,34 @@ let main (args : string[]) =
     if !keyPair <> null then
       printfn "key-pair=%A" (!keyPair).PublicKey
 
+  let realInputList = match !skipMissing with
+    | true -> inputList |> List.map (fun i -> new FileInfo(i)) |> List.filter (fun fi -> fi.Exists)
+    | false -> inputList |> List.map (fun i -> new FileInfo(i))
+
+  if (not(!skipMissing) && (realInputList |> Seq.exists (fun x -> not(x.Exists)))) then
+    printfn "Some input files are missing..., aborting"
+    Environment.Exit(-1)
+    
   let outputList = 
    match List.length inputList with
      | 1 -> [output]
-     | _ -> inputList |> List.map(fun i -> Path.Combine(output, i))
-  
+     | _ -> realInputList |> List.map (fun fi -> Path.Combine(output, fi.Name))
+
+    
+  let gitInfo = generateVersionInfoFromGit !repoDir
+
   if (!verbose) then
     printfn "outputList=%A" outputList
-     
-  //outputList  |> Seq.zip input |> Seq.iter (fun (i, o) -> printfn "patchAssembly %A %A %A %A %A" i o matchList !replace !noPdb)
-  outputList  |> Seq.zip inputList |> Seq.iter (fun (i, o) -> patchAssembly i o !repoDir !baseDate !noPdb !verbose keyPair)
+  
+
+//  outputList 
+//  |> Seq.zip realInputList 
+//  |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair)
+//  0
+  let tasks = 
+    outputList 
+    |> Seq.zip realInputList 
+    |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair)))    
+    |> Seq.toArray
+  Task.WaitAll(tasks)    
   0 
