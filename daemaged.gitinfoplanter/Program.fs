@@ -204,6 +204,7 @@ let main (args : string[]) =
   let matchList = new List<list<Regex>>()
   let noPdb = ref false
   let skipMissing = ref false
+  let useTasks = ref false
   let keyPair = ref (null : StrongNameKeyPair)
   let repoDir = ref ""
   let baseDate = ref DateTime.Now
@@ -214,7 +215,8 @@ let main (args : string[]) =
     ["-v",             ArgType.Set verbose,                                          "Display additional information"
      "--repo",         ArgType.String (fun s -> repoDir := s),                       "Path the git repository"
      "--nopdb",        ArgType.Set noPdb,                                            "Skip creation of PDB files"
-     "--skip-missing", ArgType.Set skipMissing,                                            "Skip creation of PDB files"
+     "--skip-missing", ArgType.Set skipMissing,                                      "Skip missing input files silently"
+     "--parallel",     ArgType.Set useTasks,                                         "Execute task in parallel on all avaiable CPUs"   
      "--basedate",     ArgType.String 
                           (fun s -> baseDate := 
                                DateTime.ParseExact(s, "yyyy-MM-dd", ic)),            "Base date for build date"     
@@ -254,15 +256,16 @@ let main (args : string[]) =
   if (!verbose) then
     printfn "outputList=%A" outputList
   
-
-//  outputList 
-//  |> Seq.zip realInputList 
-//  |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair)
-//  0
-  let tasks = 
+  if !useTasks then
+    let tasks = 
+      outputList 
+      |> Seq.zip realInputList 
+      |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair)))    
+      |> Seq.toArray
+    Task.WaitAll(tasks)    
+  else
     outputList 
     |> Seq.zip realInputList 
-    |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair)))    
-    |> Seq.toArray
-  Task.WaitAll(tasks)    
+    |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair)
+
   0 
