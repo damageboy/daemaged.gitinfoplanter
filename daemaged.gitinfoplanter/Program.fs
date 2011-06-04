@@ -83,14 +83,11 @@ let generateVersionInfoFromGit (repoPath : string) =
     | _ -> "+" + aheadOfOriginBy.ToString()
   String.Format("{0}/{1}{2}{3}/{4}", r.GetBranch(), localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
 
-// Patch a single assembly with AssemblyFileVersionAttribute + AssemblyInformationalVersionAttribute
-// containing computed values that describe the build-version more effectively than an incremental #
-let patchAssembly targetAsm targetPatchedAsm (gitInfo : string) (baseDate : DateTime) nopdb verbose snkp =
-
+let readAsm sourceAsm noPdb verbose =
   // Read the existing assembly
-  let targetInfo = new FileInfo(targetAsm)
-  let pdbFileName = targetInfo.FullName.Remove(targetInfo.FullName.Length - targetInfo.Extension.Length) + ".pdb"
-  let pdbExists = (not nopdb) && File.Exists(pdbFileName) 
+  let sourceInfo = new FileInfo(sourceAsm)
+  let pdbFileName = sourceInfo.FullName.Remove(sourceInfo.FullName.Length - sourceInfo.Extension.Length) + ".pdb"
+  let pdbExists = (not noPdb) && File.Exists(pdbFileName) 
   let ar = new DefaultAssemblyResolver()
   ar.AddSearchDirectory(@"c:\Windows\Microsoft.NET\Framework64\v4.0.30319")
   let rp = new ReaderParameters(AssemblyResolver = ar, 
@@ -104,19 +101,16 @@ let patchAssembly targetAsm targetPatchedAsm (gitInfo : string) (baseDate : Date
       match rp.ReadSymbols with
       | true -> ""
       | false -> "out"
-    printfn "Reading %A with%A symbols" targetAsm out
+    printfn "Reading %A with%A symbols" sourceAsm out
   
   // Do it
-  let ad = AssemblyDefinition.ReadAssembly(targetAsm, rp)
+  try
+    AssemblyDefinition.ReadAssembly(sourceAsm, rp)
+  with
+  | _ as ex
+    ->  raise <| new Exception(String.Format("Failed to assembly {0}", sourceAsm), ex)
 
-  // Force signing the new assembly if we were passed a SNK file ref
-  let nullsnkp = ref (null : StrongNameKeyPair)
-  if snkp <> nullsnkp then
-    let adName = ad.Name
-    adName.HashAlgorithm <- AssemblyHashAlgorithm.SHA1
-    adName.PublicKey <- (!snkp).PublicKey    
-    ad.Name.Attributes <- ad.Name.Attributes ||| AssemblyAttributes.PublicKey
-
+let plantInfoIfNeeded gitInfo baseDate (ad : AssemblyDefinition) =
   // Get the main module for future ref
   let md = ad.MainModule
 
@@ -179,19 +173,37 @@ let patchAssembly targetAsm targetPatchedAsm (gitInfo : string) (baseDate : Date
     removeCustomAttrTypes ad typeof<AssemblyInformationalVersionAttribute> 
     insertCustomAttr ad typeof<AssemblyInformationalVersionAttribute> fileInfoStr
     hasChanges <- true
+  hasChanges
 
-  // Save the new asm
-  if hasChanges then
-    let wp = new WriterParameters(WriteSymbols = pdbExists, StrongNameKeyPair = !snkp)
-    if (wp.WriteSymbols) then wp.SymbolWriterProvider <- new PdbWriterProvider()
+let writeAsm destAsm noPdb verbose snkp (ad : AssemblyDefinition) = 
+  // Force signing the new assembly if we were passed a SNK file ref
+  let nullsnkp = ref (null : StrongNameKeyPair)
+  if snkp <> nullsnkp then
+    let adName = ad.Name
+    adName.HashAlgorithm <- AssemblyHashAlgorithm.SHA1
+    adName.PublicKey <- (!snkp).PublicKey    
+    ad.Name.Attributes <- ad.Name.Attributes ||| AssemblyAttributes.PublicKey
+ 
+  let wp = new WriterParameters(WriteSymbols = ad.MainModule.HasSymbols, StrongNameKeyPair = !snkp)
+  if (wp.WriteSymbols) then wp.SymbolWriterProvider <- new PdbWriterProvider()
 
-    if verbose then
-      let out = 
-        match wp.WriteSymbols with
-        | true -> ""
-        | false -> "out"
-      printfn "Reading %A with%A symbols" targetAsm out
-    ad.Write(new FileStream(targetPatchedAsm, FileMode.Create), wp)
+  if verbose then
+    let out = 
+      match wp.WriteSymbols with
+      | true -> ""
+      | false -> "out"
+    printfn "Writing %A with%A symbols" destAsm out
+  ad.Write(new FileStream(destAsm, FileMode.Create), wp)
+
+let patchAssembly sourceAsm destAsm (gitInfo : string) (baseDate : DateTime) noPdb verbose snkp =
+  try 
+    let ad = readAsm sourceAsm noPdb verbose 
+    let hasChanges = plantInfoIfNeeded gitInfo baseDate ad 
+    if hasChanges then
+      writeAsm destAsm noPdb verbose snkp ad
+  with
+  | _ as ex
+    -> printfn "Encountered %A while trying to process %A" ex sourceAsm
 
 
 [<EntryPoint>]  
