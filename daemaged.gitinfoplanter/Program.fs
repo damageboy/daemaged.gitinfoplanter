@@ -228,7 +228,7 @@ let main (args : string[]) =
      "--repo",         ArgType.String (fun s -> repoDir := s),                       "Path the git repository"
      "--nopdb",        ArgType.Set noPdb,                                            "Skip creation of PDB files"
      "--skip-missing", ArgType.Set skipMissing,                                      "Skip missing input files silently"
-     "--parallel",     ArgType.Set useTasks,                                         "Execute task in parallel on all avaiable CPUs"   
+     "--parallel",     ArgType.Set useTasks,                                         "Execute task in parallel on all available CPUs"   
      "--basedate",     ArgType.String 
                           (fun s -> baseDate := 
                                DateTime.ParseExact(s, "yyyy-MM-dd", ic)),            "Base date for build date"     
