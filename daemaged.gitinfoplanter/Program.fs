@@ -18,6 +18,7 @@ open System.Reflection;
 open System.Threading.Tasks
 open Microsoft.FSharp.Text
 open System.Reflection
+open Mono.Unix.Native;
 
 open NGit
 open NGit.Api
@@ -33,6 +34,10 @@ open NGit.Treewalk.Filter
 
 // A bunch of git utils
 open gitutils
+
+let notWindows = Environment.OSVersion.Platform <> PlatformID.Win32NT
+let isWindows = not notWindows
+
 
 // Append a build-date number to the version
 let generateFileVersion (ver : Version) (baseDate : DateTime) =
@@ -83,13 +88,14 @@ let generateVersionInfoFromGit (repoPath : string) =
     | _ -> "+" + aheadOfOriginBy.ToString()
   String.Format("{0}/{1}{2}{3}/{4}", r.GetBranch(), localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
 
-let readAsm sourceAsm noPdb verbose =
+let readAsm sourceAsm noPdb searchDirs verbose =
   // Read the existing assembly
   let sourceInfo = new FileInfo(sourceAsm)
   let pdbFileName = sourceInfo.FullName.Remove(sourceInfo.FullName.Length - sourceInfo.Extension.Length) + ".pdb"
   let pdbExists = (not noPdb) && File.Exists(pdbFileName) 
   let ar = new DefaultAssemblyResolver()
-  ar.AddSearchDirectory(@"c:\Windows\Microsoft.NET\Framework64\v4.0.30319")
+  // Add search directories such as @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0"
+  searchDirs |> Seq.iter (fun sd -> ar.AddSearchDirectory(sd))
   let rp = new ReaderParameters(AssemblyResolver = ar, 
                                 ReadSymbols = pdbExists,
                                 ReadingMode = ReadingMode.Immediate)
@@ -195,9 +201,14 @@ let writeAsm destAsm noPdb verbose snkp (ad : AssemblyDefinition) =
     printfn "Writing %A with%A symbols" destAsm out
   ad.Write(new FileStream(destAsm, FileMode.Create), wp)
 
-let patchAssembly sourceAsm destAsm (gitInfo : string) (baseDate : DateTime) noPdb verbose snkp =
+  if notWindows && Path.GetExtension(destAsm) = ".exe" then    
+    printfn "Chmodding %A to executable" destAsm
+    Syscall.chmod(destAsm, FilePermissions.S_IRWXU ||| FilePermissions.S_IRGRP ||| FilePermissions.S_IXGRP ||| FilePermissions.S_IROTH ||| FilePermissions.S_IXOTH) |> ignore
+
+// Do the whole thing, read, plant the git-info, write
+let patchAssembly sourceAsm destAsm (gitInfo : string) (baseDate : DateTime) noPdb verbose snkp searchDirs =
   try 
-    let ad = readAsm sourceAsm noPdb verbose 
+    let ad = readAsm sourceAsm noPdb searchDirs verbose 
     let hasChanges = plantInfoIfNeeded gitInfo baseDate ad 
     if hasChanges then
       writeAsm destAsm noPdb verbose snkp ad
@@ -211,13 +222,12 @@ let main (args : string[]) =
   let argList = new List<string>()
   let addArg s = argList.Add(s)
   
-  let replace = new List<string>()
   let verbose = ref false
-  let matchList = new List<list<Regex>>()
   let noPdb = ref false
   let skipMissing = ref false
   let useTasks = ref false
   let keyPair = ref (null : StrongNameKeyPair)
+  let searchDirs = new List<string>()
   let repoDir = ref ""
   let baseDate = ref DateTime.Now
   let snkp fn = new StrongNameKeyPair(File.Open(fn, FileMode.Open))
@@ -229,6 +239,8 @@ let main (args : string[]) =
      "--nopdb",        ArgType.Set noPdb,                                            "Skip creation of PDB files"
      "--skip-missing", ArgType.Set skipMissing,                                      "Skip missing input files silently"
      "--parallel",     ArgType.Set useTasks,                                         "Execute task in parallel on all available CPUs"   
+     "--search-path",  ArgType.String 
+                          (fun s -> searchDirs.AddRange(s.Split(';'))),            "Base date for build date"     
      "--basedate",     ArgType.String 
                           (fun s -> baseDate := 
                                DateTime.ParseExact(s, "yyyy-MM-dd", ic)),            "Base date for build date"     
@@ -244,8 +256,7 @@ let main (args : string[]) =
   argList.RemoveAt(argList.Count - 1)  
   let inputList = List.ofSeq argList
   if (!verbose) then
-    printfn "inputList=%A" inputList
-    printfn "output=%A" output
+    printfn "Input file list: %A" inputList    
     if !keyPair <> null then
       printfn "key-pair=%A" (!keyPair).PublicKey
 
@@ -264,20 +275,22 @@ let main (args : string[]) =
 
     
   let gitInfo = generateVersionInfoFromGit !repoDir
+  if (!verbose) then
+    printfn "About to plant \'%A\' as the git version info" gitInfo
 
   if (!verbose) then
-    printfn "outputList=%A" outputList
+    printfn "Output file list: %A" outputList
   
   if !useTasks then
     let tasks = 
       outputList 
       |> Seq.zip realInputList 
-      |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair)))    
+      |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair searchDirs)))    
       |> Seq.toArray
     Task.WaitAll(tasks)    
   else
     outputList 
     |> Seq.zip realInputList 
-    |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair)
+    |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair searchDirs)
 
   0 
