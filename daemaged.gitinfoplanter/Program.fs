@@ -62,9 +62,10 @@ let generateFileVersion (ver : Version) (baseDate : DateTime) =
 
 let generateVersionInfoFromGit (repoPath : string) = 
   let r = repoPath |> buildRepo
+  let branchName = r.GetBranch()
   
   let hc = r |> getHead
-  let omc = r|> getRev "refs/remotes/origin/master";  
+  let omc = r|> getRev ("refs/remotes/origin/" + branchName);  
 
   let modifiedCount (r : Repository) = 
     r |> getRepoStatus |> modifiedPaths |> filterSubmodules r |> Seq.length
@@ -86,7 +87,7 @@ let generateVersionInfoFromGit (repoPath : string) =
     match aheadOfOriginBy with
     | 0 -> ""
     | _ -> "+" + aheadOfOriginBy.ToString()
-  String.Format("{0}/{1}{2}{3}/{4}", r.GetBranch(), localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
+  String.Format("{0}/{1}{2}{3}/{4}", branchName, localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
 
 let readAsm sourceAsm noPdb searchDirs verbose =
   // Read the existing assembly
@@ -116,7 +117,7 @@ let readAsm sourceAsm noPdb searchDirs verbose =
   | _ as ex
     ->  raise <| new Exception(String.Format("Failed to assembly {0}", sourceAsm), ex)
 
-let plantInfoIfNeeded gitInfo baseDate (ad : AssemblyDefinition) =
+let plantInfoIfNeeded gitInfo baseDate (ad : AssemblyDefinition) verbose =
   // Get the main module for future ref
   let md = ad.MainModule
 
@@ -170,15 +171,22 @@ let plantInfoIfNeeded gitInfo baseDate (ad : AssemblyDefinition) =
   let mutable hasChanges = false
 
   if (currentFileVersionStr <> fileVersionStr) then
+    if (verbose) then
+      printfn "Detected change in AssemblyFileVersionAttribute"
     removeCustomAttrTypes ad typeof<AssemblyFileVersionAttribute>
     insertCustomAttr ad typeof<AssemblyFileVersionAttribute> fileVersionStr
     hasChanges <- true
 
 
   if (currentFileInfoStr <> fileInfoStr) then
+    if (verbose) then
+      printfn "Detected change in AssemblyInformationalVersionAttribute"
     removeCustomAttrTypes ad typeof<AssemblyInformationalVersionAttribute> 
     insertCustomAttr ad typeof<AssemblyInformationalVersionAttribute> fileInfoStr
     hasChanges <- true
+ 
+  if (verbose && not hasChanges) then
+    printfn "No changes detected %A/%A" currentFileVersionStr currentFileInfoStr
   hasChanges
 
 let writeAsm destAsm noPdb verbose snkp (ad : AssemblyDefinition) = 
@@ -209,8 +217,10 @@ let writeAsm destAsm noPdb verbose snkp (ad : AssemblyDefinition) =
 let patchAssembly sourceAsm destAsm (gitInfo : string) (baseDate : DateTime) noPdb verbose snkp searchDirs =
   try 
     let ad = readAsm sourceAsm noPdb searchDirs verbose 
-    let hasChanges = plantInfoIfNeeded gitInfo baseDate ad 
+    let hasChanges = plantInfoIfNeeded gitInfo baseDate ad verbose
     if hasChanges then
+      if verbose then
+       printfn "Detected changes, writing %A" destAsm
       writeAsm destAsm noPdb verbose snkp ad
   with
   | _ as ex
@@ -240,7 +250,7 @@ let main (args : string[]) =
      "--skip-missing", ArgType.Set skipMissing,                                      "Skip missing input files silently"
      "--parallel",     ArgType.Set useTasks,                                         "Execute task in parallel on all available CPUs"   
      "--search-path",  ArgType.String 
-                          (fun s -> searchDirs.AddRange(s.Split(';'))),            "Base date for build date"     
+                          (fun s -> searchDirs.AddRange(s.Split(';', ':'))),            "Base date for build date"     
      "--basedate",     ArgType.String 
                           (fun s -> baseDate := 
                                DateTime.ParseExact(s, "yyyy-MM-dd", ic)),            "Base date for build date"     
