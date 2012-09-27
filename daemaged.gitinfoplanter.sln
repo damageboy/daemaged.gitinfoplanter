@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "daemaged.gitinfoplanter", "daemaged.gitinfoplanter\daemaged.gitinfoplanter.fsproj", "{6E94CD30-D29C-4199-9A57-1D7A4383598F}"
 EndProject
 Global
