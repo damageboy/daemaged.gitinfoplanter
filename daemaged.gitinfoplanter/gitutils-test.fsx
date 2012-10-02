@@ -1,14 +1,10 @@
-﻿#I "..\deplibs"
+﻿#I @"..\packages\ngit2.2.1.0.20120927\lib\net40"
 
 #r "NGit.dll"
 #r "Sharpen.dll"
-#r "Mono.Cecil.dll"
-#r "Mono.Cecil.Pdb.dll"
 
 open System
 open Sharpen
-open Mono.Cecil
-open Mono.Cecil.Pdb
 open System
 open System.IO
 open System.Collections.Generic
@@ -26,13 +22,17 @@ open NGit.Treewalk.Filter
 
 #load "gitutils.fs"
 
-let repoPath = @"c:\\projects\\private\\sharptrader.git"
+let repoPath = @"c:\projects\private\daemaged.gitinfoplanter.git"
 
-let notrepoPath = @"c:\\projects\\private\\sharptrader.git\src"
 
-open gitutils
+open Daemaged.GitInfoPlanter.gitutils
 
 let r = repoPath |> buildRepo
+
+let tags = r.GetTags()
+let t1 = tags.["1.0"]
+t1.GetName()
+t1.GetObjectId()
 
 let nr = notrepoPath |> buildRepo
 

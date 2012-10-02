@@ -66,9 +66,10 @@ module program =
   let generateVersionInfoFromGit repoPath originName = 
     let r = repoPath |> buildRepo
     let branchName = r.GetBranch()
-    
+       
     let hc = r |> getHead
-    let omc = r|> getRev ("refs/remotes/" + originName + "/" + branchName);  
+    let omc = r|> getRev ("refs/remotes/" + originName + "/" + branchName)
+
   
     let modifiedCount (r : Repository) = 
       r |> getRepoStatus |> modifiedPaths |> filterSubmodules r |> Seq.length
@@ -90,7 +91,14 @@ module program =
       match aheadOfOriginBy with
       | 0 -> ""
       | _ -> "+" + aheadOfOriginBy.ToString()
-    String.Format("{0}/{1}{2}{3}/{4}", branchName, localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
+
+    let branchOrTagName =
+      match r.GetTags() |> Seq.tryFind (fun e -> e.Value.GetObjectId() = hc.Id) with
+      | Some v when modifiedNum = 0 && aheadOfOriginBy = 0 
+          -> v.Key
+      | _ -> branchName
+
+    String.Format("{0}/{1}{2}{3}/{4}", branchOrTagName, localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
   
   let readAsm sourceAsm noPdb searchDirs verbose =
     // Read the existing assembly
