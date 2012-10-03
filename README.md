@@ -82,4 +82,19 @@ Console.WriteLine("MyProduct - {0}", versionString);
 OK, so that is perhaps a slightly weak side of this project... it's integration level with IDE etc.
 The best way would be to simply add it as an after build step in Visual Studio / MonoDevelop / MSBuild.
 
-The way I personally do it is by manually editing the .csproj and adding an `<AfterBuild>` target
+To do this you need to follow this "recipe":
+
+
+
+1. Get gitinfoplanter.exe and place somewhere in your project
+ - The easiet method by far is to add "gitinfoplanter" through nuget
+ - Next best way is to use the published [downloads](https://github.com/damageboy/daemaged.gitinfoplanter/downloads "downloads")
+ - If you really feel like it, clone the project/download the zip and compile it yourself   
+2. Edit your .csproj file and add an `<AfterBuild>` target and the end of the file, a generic one would look like this:  
+
+```
+<AfterBuild>
+  <Exec Command="$(ProjectDir)../packages/GitInfoPlanter.1.2/tools/gitinfoplanter.exe --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)"/>
+</AfterBuild>
+```
+
