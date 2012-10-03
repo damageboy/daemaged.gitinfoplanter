@@ -44,7 +44,7 @@
 			<v:textRect cx="403.937" cy="302.144" width="807.88" height="77.6679"/>
 			<rect x="0" y="263.31" width="807.874" height="77.6679" class="st1"/>
 			<text x="4.78" y="308.74" class="st2" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>1.0.0.0.4658/master/20+1M/7ad05553b5bcc91c26f5de3e3216b2f40388a381</text>		</g>
-		<g id="shape2-4" v:mID="2" v:groupContext="shape" transform="translate(357.874,473.649) scale(1,-1)">
+		<g id="shape2-4" v:mID="2" v:groupContext="shape" transform="translate(347.874,473.649) scale(1,-1)">
 			<title>Side brace</title>
 			<desc>Full Commit Id</desc>
 			<v:userDefs>
@@ -63,10 +63,10 @@
 			</v:userDefs>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="236.693" cy="369.953" width="180" height="29.6036"/>
-			<path d="M0 326.8 L0 326.8 A14.173 14.173 -180 0 0 14.17 340.98 L222.52 340.98 A14.173 14.173 0 0 1 236.69 355.15 A14.173
-						 14.173 0 0 1 250.87 340.98 L467.72 340.98 A14.173 14.173 -180 0 0 481.89 326.8 L481.89 326.8" class="st3"/>
+      <path d="M0 326.8 L0 326.8 A14.173 14.173 -180 0 0 14.17 340.98 L217.2 340.98 A14.173 14.173 0 0 1 231.38 355.15 A14.173
+						 14.173 0 0 1 245.55 340.98 L457.09 340.98 A14.173 14.173 -180 0 0 471.26 326.8 L471.26 326.8" class="st3"/>			
 			<text x="183.63" y="-364.55" transform="scale(1,-1)" class="st4" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Full Commit Id</text>		</g>
-		<g id="shape3-10" v:mID="3" v:groupContext="shape" transform="translate(335.197,473.649) scale(1,-1)">
+		<g id="shape3-10" v:mID="3" v:groupContext="shape" transform="translate(320.197,473.649) scale(1,-1)">
 			<title>Side brace.3</title>
 			<desc>M in case of non committed changes</desc>
 			<v:userDefs>
@@ -85,12 +85,12 @@
 			</v:userDefs>
 			<v:textBlock v:margins="rect(4,4,4,4)" v:tabSpace="42.5197"/>
 			<v:textRect cx="9.92126" cy="393.14" width="90" height="94.4036"/>
-			<path d="M0 326.8 L0 336.02 A4.96055 4.96055 -180 0 0 4.96 340.98 A4.96055 4.96055 0 0 1 9.92 345.94 A4.96055 4.96055
-						 0 0 1 14.88 340.98 A4.96055 4.96055 -180 0 0 19.84 336.02 L19.84 326.8" class="st3"/>
+			<path d="M0 326.77 L0 337.26 A3.72041 3.72041 -180 0 0 3.72 340.98 A3.72041 3.72041 0 0 1 7.44 344.7 A3.72041 3.72041
+						 0 0 1 11.16 340.98 A3.72041 3.72041 -180 0 0 14.88 337.26 L14.88 326.77" class="st3"/>
 			<text x="-24.75" y="-420.14" transform="scale(1,-1)" class="st4" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>M in case <tspan
 						x="-13.81" dy="1.2em" class="st5">of non </tspan><tspan x="-30.31" dy="1.2em" class="st5">committed </tspan><tspan
 						x="-19.89" dy="1.2em" class="st5">changes</tspan></text>		</g>
-		<g id="shape4-18" v:mID="4" v:groupContext="shape" transform="translate(335.197,-154.448) scale(-1,1)">
+		<g id="shape4-18" v:mID="4" v:groupContext="shape" transform="translate(320.197,-154.448) scale(-1,1)">
 			<title>Side brace.4</title>
 			<desc># of commits in the local repo + # of commits ahead of “origin”</desc>
 			<v:userDefs>
@@ -115,7 +115,7 @@
 			<text x="-94.05" y="372.87" transform="scale(-1,1)" class="st4" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/># of commits in the <tspan
 						x="-82.07" dy="1.2em" class="st5">local repo </tspan>+ # of <tspan x="-89.04" dy="1.2em" class="st5">commits ahead of </tspan><tspan
 						x="-51.9" dy="1.2em" class="st5">“</tspan>origin”</text>		</g>
-		<g id="shape5-26" v:mID="5" v:groupContext="shape" transform="translate(203.386,470.815) scale(1,-1)">
+		<g id="shape5-26" v:mID="5" v:groupContext="shape" transform="translate(193.386,470.815) scale(1,-1)">
 			<title>Side brace.5</title>
 			<desc>branch or tag name (“thing” to checkout)</desc>
 			<v:userDefs>
