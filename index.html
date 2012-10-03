@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Daemaged.gitinfoplanter by damageboy</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Daemaged.gitinfoplanter</h1>
+        <p>Plant Git Information into .NET Assemblies</p>
+        <p class="view"><a href="https://github.com/damageboy/daemaged.gitinfoplanter">View the Project on GitHub <small>damageboy/daemaged.gitinfoplanter</small></a></p>
+        <ul>
+          <li><a href="https://github.com/damageboy/daemaged.gitinfoplanter/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/damageboy/daemaged.gitinfoplanter/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/damageboy/daemaged.gitinfoplanter">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>Plant git repo information in .NET assemblies</h1>
+
+<p>gitinfoplanter.exe automates the process of reading your git repo status and embedding it as an easy to use string in an assembly level attribute of your .NET executable.</p>
+
+<h2>Git Repo String</h2>
+
+<p>So how does a version string look?<br>
+The best way to answer this is to simply run the info planter with --version to see a sample:</p>
+
+<blockquote>
+<p>$ ./daemaged.gitinfoplanter.exe --version<br>
+daemaged.gitinfoplanter version "1.1.0.0.4658/1.1/20/1e5356fd2bdbde4b5c82552844e6eb5ed6d5a9f2"</p>
+</blockquote>
+
+<p>The version string is the part that says: <em>1.1.0.0.4658/1.1/20/1e5356fd2bdbde4b5c82552844e6eb5ed6d5a9f2</em><br>
+but what does it really mean?
+<img src="https://raw.github.com/damageboy/daemaged.gitinfoplanter/master/version-info-explanation.svg" height="258" width="750"></p>
+
+<ul>
+<li>The first part, 1.1.0.0.4658 in this case, is really composed of two parts
+
+<ul>
+<li>The Assembly Version attribute value (This is the normal value that get included in every .NET AssemblyInfo.cs file, 1.0.0.0 in this case</li>
+<li>The build-day, expressed as number of days since a specified "epoch-day", 1/1/2000 by default, 4658 days in this case, any base date is really good here, as long as it's constant..., good options are your anniversary, birthday, child's birth-day, historical event or whatever :)</li>
+</ul>
+</li>
+<li>The second part is best described as the "what-to-checkout or clone" field... Normally it will be the branch name of the build, <strong>but it doesn't have to be</strong>: if the build was made of a <em>valid</em> tag release, it will contain the name of the tag... What makes a valid tag release?
+
+<ul>
+<li>The commit has to have a tag (duh)</li>
+<li>The tag has to be pushed</li>
+<li>There are no local modifications</li>
+<li>The same commit is also pushed to the origin</li>
+</ul>
+</li>
+<li>Next we have the revision # which can be thought of as some incremental number that provides an SVN-esque revision #. In reality it's just a count of the commits in the current branch...<br>
+However, this revision # may have appendages:
+
+<ul>
+<li>+N in case the local commit is ahead of the origin, and N denoted by how many local commits</li>
+<li>The string "M" in case the build was done off of a repo with local modifications</li>
+<li>Last but not least, the full commit hash is embedded as a string, for safe keeping</li>
+</ul>
+</li>
+</ul><h2>Where/How does this get embedded?</h2>
+
+<p>The git info planter uses cecil to re-write the assembly and embed two assembly level attributes:</p>
+
+<ul>
+<li>
+<code>[AssemblyFileVersionAttribute]</code> will be embedded with the first part of the full string as it's value (1.1.0.0.4658 in the previous example)</li>
+<li>
+<code>[AssemblyInformationalVersionAttribute]</code> will be embedded with the full string as it's value</li>
+</ul><p>So, you can think of the resulting assemblly <em>as-if</em> someone went back to your code, and edited you AssemblyInfo.cs file from this:</p>
+
+<div class="highlight"><pre><span class="k">using</span> <span class="nn">System.Reflection</span><span class="p">;</span>
+
+<span class="na">[assembly: AssemblyTitle("Daemaged.GitInfoPlanter")]</span>
+<span class="na">[assembly: AssemblyDescription("Plant git information into .NET assemblies")]</span>
+<span class="na">[assembly: AssemblyCompany("Damage INC.")]</span>
+<span class="na">[assembly: AssemblyProduct("Daemaged.GitInfoPlanter")]</span>
+<span class="na">[assembly: AssemblyCopyright("Copyright (C) Dan Shechter, Inc. 2010")]</span>
+<span class="na">[assembly: AssemblyVersion("1.1.0.0")]</span>
+</pre></div>
+
+<p>To this:</p>
+
+<div class="highlight"><pre><span class="k">using</span> <span class="nn">System.Reflection</span><span class="p">;</span>
+
+<span class="na">[assembly: AssemblyTitle("Daemaged.GitInfoPlanter")]</span>
+<span class="na">[assembly: AssemblyDescription("Plant git information into .NET assemblies")]</span>
+<span class="na">[assembly: AssemblyCompany("Damage INC.")]</span>
+<span class="na">[assembly: AssemblyProduct("Daemaged.GitInfoPlanter")]</span>
+<span class="na">[assembly: AssemblyCopyright("Copyright (C) Dan Shechter, Inc. 2010")]</span>
+<span class="na">[assembly: AssemblyVersion("1.1.0.0")]</span>
+<span class="na">[assembly: AssemblyFileVersionAttribute("1.1.0.0.4658")]</span>
+<span class="na">[assembly: AssemblyInformationalVersionAttribute("1.1.0.0.4658/1.1/20/1e5356fd2bdbde4b5c82552844e6eb5ed6d5a9f2")]</span>
+</pre></div>
+
+<p>Of course, no real changes to the code were actually made, however the resulting binary will contain the additional attributes</p>
+
+<h2>How do I retrieve these attributes at runtime?</h2>
+
+<p>Well, it's obviously a very idea to be able to actually read these things when displaying an about dialog, or when a <code>--version</code> option is perhaps specified of command-line...<br>
+It's a very simple chore to accomplish, in c# for example, all that one needs to do is:</p>
+
+<div class="highlight"><pre><span class="kt">var</span> <span class="n">versionInfo</span> <span class="p">=</span> 
+  <span class="n">asm</span><span class="p">.</span><span class="n">GetCustomAttributes</span><span class="p">(</span><span class="k">typeof</span><span class="p">(</span><span class="n">AssemblyInformationalVersionAttribute</span><span class="p">),</span> <span class="k">false</span><span class="p">)</span>
+     <span class="p">.</span><span class="n">Cast</span><span class="p">&lt;</span><span class="n">AssemblyInformationalVersionAttribute</span><span class="p">&gt;().</span><span class="n">FirstOrDefault</span><span class="p">();</span>
+<span class="kt">var</span> <span class="n">versionString</span> <span class="p">=</span> 
+  <span class="n">versionInfo</span> <span class="p">==</span> <span class="k">null</span> <span class="p">?</span> 
+   <span class="s">"No specific version info embedded"</span> <span class="p">:</span> 
+   <span class="n">versionInfo</span><span class="p">.</span><span class="n">InformationalVersion</span><span class="p">;</span>
+<span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">"MyProduct - {0}"</span><span class="p">,</span> <span class="n">versionString</span><span class="p">);</span>
+</pre></div>
+
+<h2>OK, I'm sold, how do I put this in my build process?</h2>
+
+<p>OK, so that is perhaps a slightly weak side of this project... it's integration level with IDE etc.
+The best way would be to simply add it as an after build step in Visual Studio / MonoDevelop / MSBuild.</p>
+
+<p>The way I personally do it is by manually editing the .csproj and adding an <code>&lt;AfterBuild&gt;</code> target</p>
+      </section>
+    </div>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/damageboy">damageboy</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
