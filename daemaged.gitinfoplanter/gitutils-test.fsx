@@ -22,18 +22,18 @@ open NGit.Treewalk.Filter
 
 #load "gitutils.fs"
 
-let repoPath = @"c:\projects\private\daemaged.gitinfoplanter.git"
+let repoPath = @"C:\projects\private\daemaged.gitinfoplanter.git\daemaged.gitinfoplanter\obj"
 
 
 open Daemaged.GitInfoPlanter.gitutils
 
 let r = repoPath |> buildRepo
-
+r.GetBranch()
 let tags = r.GetTags()
 let t1 = tags.["1.0"]
 t1.GetName()
 t1.GetObjectId()
 
-let nr = notrepoPath |> buildRepo
 
-r |> gitutils.getRepoStatus |> gitutils.modifiedPaths |> gitutils.filterSubmodules r
+
+r |> getRepoStatus |> modifiedPaths |> filterSubmodules r

@@ -288,7 +288,7 @@ module program =
         asm.GetCustomAttributes(typeof<AssemblyFileVersionAttribute>, false) |> Seq.head :?> AssemblyFileVersionAttribute
       let fiva = 
         asm.GetCustomAttributes(typeof<AssemblyInformationalVersionAttribute>, false) |> Seq.head :?> AssemblyInformationalVersionAttribute              
-      printfn "daemaged.gitinfoplanter version %A" fiva.InformationalVersion
+      printfn "%s version %s" (asm.GetName().Name) fiva.InformationalVersion
       System.Environment.Exit(0)
     
     if (!verbose) && searchDirs.Count > 0 then 

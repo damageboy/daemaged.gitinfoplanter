@@ -13,8 +13,19 @@ open NGit.Treewalk
 open NGit.Treewalk.Filter
 
 module gitutils =
+
   let buildRepo repoPath = 
-    (new FileRepositoryBuilder()).SetWorkTree(new FilePath(repoPath)).Build()
+    let parent dir = 
+      match Directory.GetParent(dir) with
+      | null -> raise (Exception("git repo could not be found"))
+      | di   -> di.FullName
+
+    let rec getRepoDir dir = 
+      match Directory.Exists(Path.Combine(dir, NGit.Constants.DOT_GIT)) with
+      | true -> dir
+      | false -> getRepoDir (parent dir)
+
+    (new FileRepositoryBuilder()).SetWorkTree(new FilePath(getRepoDir repoPath)).Build()
 
   let getRev revStr (r : Repository) = 
     let headId = r.Resolve(revStr);
