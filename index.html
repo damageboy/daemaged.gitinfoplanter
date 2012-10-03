@@ -128,7 +128,25 @@ It's a very simple chore to accomplish, in c# for example, all that one needs to
 <p>OK, so that is perhaps a slightly weak side of this project... it's integration level with IDE etc.
 The best way would be to simply add it as an after build step in Visual Studio / MonoDevelop / MSBuild.</p>
 
-<p>The way I personally do it is by manually editing the .csproj and adding an <code>&lt;AfterBuild&gt;</code> target</p>
+<p>To do this you need to follow this "recipe":</p>
+
+<ol>
+<li>Get gitinfoplanter.exe and place somewhere in your project
+
+<ul>
+<li>The easiet method by far is to add "gitinfoplanter" through nuget</li>
+<li>Next best way is to use the published <a href="https://github.com/damageboy/daemaged.gitinfoplanter/downloads" title="downloads">downloads</a>
+</li>
+<li>If you really feel like it, clone the project/download the zip and compile it yourself<br>
+</li>
+</ul>
+</li>
+<li>Edit your .csproj file and add an <code>&lt;AfterBuild&gt;</code> target and the end of the file, a generic one would look like this:<br>
+</li>
+</ol><pre><code>&lt;AfterBuild&gt;
+  &lt;Exec Command="$(ProjectDir)../packages/GitInfoPlanter.1.2/tools/gitinfoplanter.exe --search-path &amp;quot;$(TargetFrameworkDirectory)&amp;quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)"/&gt;
+&lt;/AfterBuild&gt;
+</code></pre>
       </section>
     </div>
     <footer>
