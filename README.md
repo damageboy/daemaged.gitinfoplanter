@@ -12,7 +12,7 @@ The best way to answer this is to simply run the info planter with --version to 
 
 The version string is the part that says: *1.1.0.0.4658/1.1/20/1e5356fd2bdbde4b5c82552844e6eb5ed6d5a9f2*  
 but what does it really mean?
-<img src="https://raw.github.com/damageboy/daemaged.gitinfoplanter/master/version-info-explanation.svg" height="258" width="750" />
+<img src="http://damageboy.github.com/daemaged.gitinfoplanter/images/version-info-explanation.svg" />
 
 - The first part, 1.1.0.0.4658 in this case, is really composed of two parts
  - The Assembly Version attribute value (This is the normal value that get included in every .NET AssemblyInfo.cs file, 1.0.0.0 in this case
@@ -88,7 +88,7 @@ To do this you need to follow this "recipe":
 
 1. Get gitinfoplanter.exe and place somewhere in your project
  - The easiet method by far is to add "gitinfoplanter" through nuget
- - Next best way is to use the published [downloads](https://github.com/damageboy/daemaged.gitinfoplanter/downloads "downloads")
+ - Next best way is to use the published [latest gitinfoplanter.exe](https://github.com/downloads/damageboy/daemaged.gitinfoplanter/gitinfoplanter.exe "gitinfoplanter.exe")
  - If you really feel like it, clone the project/download the zip and compile it yourself   
 2. Edit your .csproj file and add an `<AfterBuild>` target and the end of the file, a generic one would look like this:  
 
@@ -97,4 +97,10 @@ To do this you need to follow this "recipe":
   <Exec Command="$(ProjectDir)../packages/GitInfoPlanter.1.2/tools/gitinfoplanter.exe --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)"/>
 </AfterBuild>
 ```
+
+ - The *search-path* option makes sure you will automatically that the assembly re-writing will take into account the correct framework assemblies  
+   This is obviously important for makeing sure that the resulting assembly will still function as intended
+ - The *basedate* is up tothe user to set as some arbitrary date to use as a starting point for the build-day number
+ - *repo* just point to anywhere inside the project
+ - The last two parameters are the input and output executables, in this case the same path is used to overwrite the original assembly
 
