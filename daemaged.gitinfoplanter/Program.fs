@@ -67,9 +67,13 @@ module program =
     let r = repoPath |> buildRepo
     let branchName = r.GetBranch()
        
-    let hc = r |> getHead
-    let omc = r|> getRev ("refs/remotes/" + originName + "/" + branchName)
-
+    let hc = match r |> getHead with
+      | None -> raise (Exception("Cant parse head commit, bailing out"))
+      | Some(c) -> c
+    let omc = 
+      match r |> getRev ("refs/remotes/" + originName + "/" + branchName) with
+        | None -> hc
+        | Some(c) -> c
   
     let modifiedCount (r : Repository) = 
       r |> getRepoStatus |> modifiedPaths |> filterSubmodules r |> Seq.length
@@ -315,9 +319,15 @@ module program =
      match List.length inputList with
        | 1 -> [output]
        | _ -> realInputList |> List.map (fun fi -> Path.Combine(output, fi.Name))
-  
-      
-    let gitInfo = generateVersionInfoFromGit !repoDir !originName
+    
+    let gitInfo = ref "Unknown"
+    try
+      gitInfo := generateVersionInfoFromGit !repoDir !originName
+    with
+      | :? Exception as ex -> 
+          printfn "Failed to process git repo %s" !repoDir
+          System.Environment.Exit(-1)
+       
     if (!verbose) then
       printfn "About to plant \'%A\' as the git version info" gitInfo
   
@@ -328,13 +338,13 @@ module program =
       let tasks = 
         outputList 
         |> Seq.zip realInputList 
-        |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair searchDirs)))    
+        |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o !gitInfo !baseDate !noPdb !verbose keyPair searchDirs)))    
         |> Seq.toArray
       Task.WaitAll(tasks)    
     else
       outputList 
       |> Seq.zip realInputList 
-      |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o gitInfo !baseDate !noPdb !verbose keyPair searchDirs)
+      |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o !gitInfo !baseDate !noPdb !verbose keyPair searchDirs)
   
     0 
   

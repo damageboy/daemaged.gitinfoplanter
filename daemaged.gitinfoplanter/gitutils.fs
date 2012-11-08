@@ -29,8 +29,11 @@ module gitutils =
 
   let getRev revStr (r : Repository) = 
     let headId = r.Resolve(revStr);
-    let rw = new RevWalk(r)
-    rw.ParseCommit (headId)  
+    if headId = null then
+      None
+    else
+      let rw = new RevWalk(r)
+      Some(rw.ParseCommit (headId))
 
   let getHead (r : Repository) =   
     getRev Constants.HEAD r

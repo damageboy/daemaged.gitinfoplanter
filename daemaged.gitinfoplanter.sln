@@ -5,6 +5,9 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "daemaged.gitinfoplanter", "
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{2748CB2F-C7B1-4800-BC1C-3E4C6D5FEF1E}"
 	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\nuget.exe = .nuget\nuget.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject

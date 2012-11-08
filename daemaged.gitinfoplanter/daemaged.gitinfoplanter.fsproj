@@ -13,6 +13,8 @@
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <Name>daemaged.gitinfoplanter</Name>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -23,8 +25,9 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\debug\daemaged.gitinfoplanter.xml</DocumentationFile>
-    <StartArguments/>
-    <StartWorkingDirectory></StartWorkingDirectory>
+    <StartArguments />
+    <StartWorkingDirectory>
+    </StartWorkingDirectory>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -35,8 +38,8 @@
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\release\daemaged.gitinfoplanter.xml</DocumentationFile>
-    <StartArguments/>
-    <StartWorkingDirectory/>
+    <StartArguments />
+    <StartWorkingDirectory />
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup>
@@ -59,26 +62,22 @@
       <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil">
-      <HintPath>..\packages\Mono.Cecil.0.9.5.3\lib\net40\Mono.Cecil.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil.Mdb">
-      <HintPath>..\packages\Mono.Cecil.0.9.5.3\lib\net40\Mono.Cecil.Mdb.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.Mdb.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil.Pdb">
-      <HintPath>..\packages\Mono.Cecil.0.9.5.3\lib\net40\Mono.Cecil.Pdb.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.Pdb.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil.Rocks">
-      <HintPath>..\packages\Mono.Cecil.0.9.5.3\lib\net40\Mono.Cecil.Rocks.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Posix, Version=2.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
-      <Private>True</Private>
+    <Reference Include="Mono.Posix">
+      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\Mono.Posix.dll</HintPath>
     </Reference>
-    <Reference Include="Mono.Security, Version=2.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
-      <Private>True</Private>
+    <Reference Include="Mono.Security">
+      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\Mono.Security.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Security.Win32">
       <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\Mono.Security.Win32.dll</HintPath>
@@ -110,5 +109,5 @@
     <Exec Command="$(TargetDir)gitinfoplanter2.exe --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)" />
     <Delete Files="$(TargetDir)gitinfoplanter2.exe" />
     <Exec Command="$(ProjectDir)../packages/ILRepack.1.17/tools/ILRepack.exe /wildcards /allowdup:Mono.Security.Cryptography.* /out:$(TargetDir)../$(AssemblyName).exe $(TargetPath) $(TargetDir)*.dll" />
-  </Target>
+  </Target>  
 </Project>
