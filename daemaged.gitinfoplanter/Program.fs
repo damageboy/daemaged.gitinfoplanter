@@ -88,13 +88,13 @@ module program =
     //let modifiedList = r |> getRepoStatus |> modifiedPaths |> Seq.toArray
     //printfn "%A" modifiedList
     
-    let localRevNo = r |> getRevNo hc
-    let originRevNo = r |> getRevNo omc
-    let aheadOfOriginBy = localRevNo - originRevNo
+    let localRevNo = r |> getRevNo hc           
+    let originRevNo = if hc = omc then localRevNo else r |> getRevNo omc      
+    let aheadOfOriginBy = localRevNo - originRevNo    
     let aheadOfOriginByStr = 
-      match aheadOfOriginBy with
-      | 0 -> ""
-      | _ -> "+" + aheadOfOriginBy.ToString()
+      match hc = omc with
+      | true -> ""
+      | false -> "+" + aheadOfOriginBy.ToString()
 
     let branchOrTagName =
       match r.GetTags() |> Seq.tryFind (fun e -> e.Value.GetObjectId() = hc.Id) with

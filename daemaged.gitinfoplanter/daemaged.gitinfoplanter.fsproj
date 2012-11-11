@@ -38,7 +38,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\release\daemaged.gitinfoplanter.xml</DocumentationFile>
-    <StartArguments />
+    <StartArguments>--search-path "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0;;" --basedate 2000-01-01 --repo C:\projects\private\daemaged.gitinfoplanter.git\daemaged.gitinfoplanter\ C:\projects\private\daemaged.gitinfoplanter.git\daemaged.gitinfoplanter\bin\release\gitinfoplanter.exe C:\projects\private\daemaged.gitinfoplanter.git\daemaged.gitinfoplanter\bin\release\gitinfoplanter3.exe</StartArguments>
     <StartWorkingDirectory />
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
@@ -108,6 +108,6 @@
     <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(TargetDir)gitinfoplanter2.exe" />
     <Exec Command="$(TargetDir)gitinfoplanter2.exe --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)" />
     <Delete Files="$(TargetDir)gitinfoplanter2.exe" />
-    <Exec Command="$(ProjectDir)../packages/ILRepack.1.17/tools/ILRepack.exe /wildcards /allowdup:Mono.Security.Cryptography.* /out:$(TargetDir)../$(AssemblyName).exe $(TargetPath) $(TargetDir)*.dll" />
-  </Target>  
+    <Exec Command="$(ProjectDir)../packages/ILRepack.1.18/tools/ILRepack.exe /wildcards /allowdup:Mono.Security.Cryptography.* /out:$(TargetDir)../$(AssemblyName).exe $(TargetPath) $(TargetDir)*.dll" />
+  </Target>
 </Project>
