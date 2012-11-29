@@ -116,11 +116,8 @@ type ArgParser() =
         let usage = defaultArg usage ""
         System.Console.Error.WriteLine (getUsage (Seq.toList specs) usage)
 
-    #if FX_NO_COMMAND_LINE_ARGS
-    #else
-    static member Parse (specs,?other,?usageText) = 
+    static member Parse (argv, specs,?other,?usageText) = 
         let current = ref 0
-        let argv = System.Environment.GetCommandLineArgs() 
         try ArgParser.ParsePartial (current, argv, specs, ?other=other, ?usageText=usageText)
         with 
           | Bad h 
@@ -130,4 +127,6 @@ type ArgParser() =
               System.Environment.Exit(1); 
           | e -> 
               reraise()
-    #endif
+
+    static member Parse (specs,?other,?usageText) = 
+      ArgParser.Parse(System.Environment.GetCommandLineArgs(), specs, ?other=other, ?usageText=usageText)

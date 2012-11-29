@@ -18,6 +18,7 @@ open System.Collections.Generic
 open System.Text.RegularExpressions
 open System.Reflection;
 open System.Threading.Tasks
+open System.Runtime.InteropServices
 open Microsoft.FSharp.Text
 open System.Reflection
 open Mono.Unix.Native;
@@ -36,6 +37,8 @@ open NGit.Treewalk.Filter
 
 // A bunch of git utils
 open gitutils
+
+open cmdlinefixer
 
 module program =
   let notWindows = Environment.OSVersion.Platform <> PlatformID.Win32NT
@@ -240,11 +243,17 @@ module program =
     with
     | _ as ex
       -> printfn "Encountered %A while trying to process %A" ex sourceAsm
-  
-  
+
+  [<DllImport("kernel32", CharSet = CharSet.Auto)>]
+  extern IntPtr GetCommandLine()
+
   [<EntryPoint>]  
-  let main (args : string[]) =
+  let main (args : string[]) =    
     let argList = new List<string>()
+    //let joinedArgs = String.Join(" ", args)    
+    let fixedArgs = match isWindows with
+                   | true ->  GetCommandLine() |> Marshal.PtrToStringAuto |> splitCmdLine |> Seq.skip 1 |> Seq.toArray
+                   | false -> args             
     let addArg s = argList.Add(s)
     
     let verbose = ref false
@@ -261,9 +270,7 @@ module program =
     let ic = System.Globalization.CultureInfo.InvariantCulture
     let argsep = match isWindows with
                    | true -> ';'
-                   | false -> ':'
-                   
-    
+                   | false -> ':'                       
     let specs =
       ["-v",             ArgType.Set verbose,                                          "Display additional information"
        "--version",      ArgType.Set printVersion,                                     "Display version info"
@@ -284,7 +291,8 @@ module program =
       ] |> List.map (fun (sh, ty, desc) -> ArgInfo(sh, ty, desc))
    
     let () =
-      ArgParser.Parse(specs, addArg)
+      ArgParser.Parse(fixedArgs, specs, addArg)
+  
 
     if !printVersion then
       let asm = Assembly.GetEntryAssembly()
