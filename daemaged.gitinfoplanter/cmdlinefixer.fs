@@ -16,13 +16,15 @@ module cmdlinefixer =
   
   let trim (s : string) = s.Trim()
   
+  let isnullorempty s = String.IsNullOrEmpty(s)
+
   let splitCmdLine s =
     let inQuotes = ref false
     split s (fun c -> 
       if c = '\"' then 
         inQuotes := not !inQuotes
       (not !inQuotes) && (c = ' ')
-    ) |> Seq.map trim |> Seq.map trimMatchingDblQuotes
+    ) |> Seq.map trim |> Seq.map trimMatchingDblQuotes |> Seq.filter (fun s -> not(isnullorempty s))
 
   //let x = "--parallel --search-path \\\"C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.5\\\" --skip-missing --basedate 2000-01-01 --repo C:\\projects\\sharptrader\\src\\SharpTrader.Developer.Dist\\/../../ C:\\projects\\sharptrader\\src\\SharpTrader.Developer.Dist\\/../../dist/win-debug-x64/SharpTrader.Developer.Dist/bin/SharpTrader.Configurator.dll C:\\projects\\sharptrader\\src\\SharpTrader.Developer.Dist\\/../../dist/win-debug-x64/SharpTrader.Developer.Dist/bin"
   //splitCmdLine x

@@ -37,7 +37,6 @@ open NGit.Treewalk.Filter
 
 // A bunch of git utils
 open gitutils
-
 open cmdlinefixer
 
 module program =
@@ -228,7 +227,7 @@ module program =
     ad.Write(new FileStream(destAsm, FileMode.Create), wp)
   
     if notWindows && Path.GetExtension(destAsm) = ".exe" then    
-      printfn "Chmodding %A to executable" destAsm
+      printfn "chmodding %A to executable" destAsm
       Syscall.chmod(destAsm, FilePermissions.S_IRWXU ||| FilePermissions.S_IRGRP ||| FilePermissions.S_IXGRP ||| FilePermissions.S_IROTH ||| FilePermissions.S_IXOTH) |> ignore
   
   // Do the whole thing, read, plant the git-info, write
@@ -246,6 +245,15 @@ module program =
 
   [<DllImport("kernel32", CharSet = CharSet.Auto)>]
   extern IntPtr GetCommandLine()
+
+  
+  let die msg = 
+    printfn "Usage error: %s" msg
+    System.Environment.Exit(-2)
+
+  let dieusage msg = 
+    printfn "Usage error: %s" msg
+    System.Environment.Exit(-1)
 
   [<EntryPoint>]  
   let main (args : string[]) =    
@@ -272,28 +280,26 @@ module program =
                    | true -> ';'
                    | false -> ':'                       
     let specs =
-      ["-v",             ArgType.Set verbose,                                          "Display additional information"
+      ["--vebose",             ArgType.Set verbose,                                    "Display additional information"
        "--version",      ArgType.Set printVersion,                                     "Display version info"
        "--repo",         ArgType.String (fun s -> repoDir := s),                       "Path the git repository"
-       "--origin",       ArgType.String (fun s -> originName := s),                       "Path the git repository"
+       "--origin",       ArgType.String (fun s -> originName := s),                    "Path the git repository"
        "--nopdb",        ArgType.Set noPdb,                                            "Skip creation of PDB files"
        "--skip-missing", ArgType.Set skipMissing,                                      "Skip missing input files silently"
        "--parallel",     ArgType.Set useTasks,                                         "Execute task in parallel on all available CPUs"   
        "--search-path",  ArgType.String 
-                            (fun s -> searchDirs.AddRange(s.Split(argsep))),            "Base date for build date"     
+                            (fun s -> searchDirs.AddRange(s.Split(argsep))),           "Base date for build date"     
        "--basedate",     ArgType.String 
                             (fun s -> baseDate := 
                                  DateTime.ParseExact(s, "yyyy-MM-dd", ic)),            "Base date for build date"     
        "--keyfile",      ArgType.String (fun s -> keyPair := snkp s),                  "Key pair to sign the assembly with"
 
-       "--",             ArgType.Rest addArg,                                        "Stop parsing command line"
+       "--",             ArgType.Rest addArg,                                          "Stop parsing command line"
   
       ] |> List.map (fun (sh, ty, desc) -> ArgInfo(sh, ty, desc))
-   
-    let () =
-      ArgParser.Parse(fixedArgs, specs, addArg)
+    
+    ArgParser.Parse(fixedArgs, specs, addArg)
   
-
     if !printVersion then
       let asm = Assembly.GetEntryAssembly()
       let fva = 
@@ -305,6 +311,9 @@ module program =
     
     if (!verbose) && searchDirs.Count > 0 then 
       printfn "Search path is %A" (String.Join(":", searchDirs))
+
+    if argList.Count < 2 then
+      dieusage "a single input and single output must be supplied at the minimum"      
 
     let output = argList.[argList.Count - 1]
     
@@ -320,9 +329,11 @@ module program =
       | false -> inputList |> List.map (fun i -> new FileInfo(i))
   
     if (not(!skipMissing) && (realInputList |> Seq.exists (fun x -> not(x.Exists)))) then
-      printfn "Some input files are missing..., aborting"
-      Environment.Exit(-1)
-      
+      die "Some input files are missing... aborting"
+
+    if List.isEmpty realInputList then
+      die "None of the specified input files exist"
+            
     let outputList = 
      match List.length inputList with
        | 1 -> [output]

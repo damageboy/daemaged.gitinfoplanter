@@ -13,5 +13,5 @@ open System.Runtime.InteropServices
 [<assembly: AssemblyCompany("Damage INC.")>]
 [<assembly: AssemblyProduct("Daemaged.GitInfoPlanter")>]
 [<assembly: AssemblyCopyright("Copyright (C) Dan Shechter, Inc. 2010")>]
-[<assembly: AssemblyVersion("1.4.1.0")>]
+[<assembly: AssemblyVersion("1.4.2.0")>]
 ()

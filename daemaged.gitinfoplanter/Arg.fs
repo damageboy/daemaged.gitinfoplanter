@@ -116,6 +116,7 @@ type ArgParser() =
         let usage = defaultArg usage ""
         System.Console.Error.WriteLine (getUsage (Seq.toList specs) usage)
 
+    
     static member Parse (argv, specs,?other,?usageText) = 
         let current = ref 0
         try ArgParser.ParsePartial (current, argv, specs, ?other=other, ?usageText=usageText)
@@ -127,6 +128,3 @@ type ArgParser() =
               System.Environment.Exit(1); 
           | e -> 
               reraise()
-
-    static member Parse (specs,?other,?usageText) = 
-      ArgParser.Parse(System.Environment.GetCommandLineArgs(), specs, ?other=other, ?usageText=usageText)
