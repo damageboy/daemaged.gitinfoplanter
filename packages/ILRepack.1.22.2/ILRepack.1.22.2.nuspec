@@ -2,15 +2,16 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>ILRepack</id>
-    <version>1.18</version>
+    <version>1.22.2</version>
     <title>ILRepack - Open-source alternative to ILMerge</title>
     <authors>Francois Valdy</authors>
     <owners>Francois Valdy</owners>
     <projectUrl>https://github.com/gluck/il-repack</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>ILRepack is meant at replacing ILMerge / Mono.Merge.
-      The former being closed-source, impossible to customize, slow, resource consuming and many more. The later being deprecated, unsupported, and based on an old version of Mono.Cecil.</description>
+            The former being closed-source, impossible to customize, slow, resource consuming and many more. The later being deprecated, unsupported, and based on an old version of Mono.Cecil.</description>
     <summary>ILRepack is a utility that can be used to merge multiple .NET assemblies into a single assembly</summary>
-    <copyright>Copyright � Francois Valdy 2011-2012</copyright>
+    <copyright>Copyright © Francois Valdy 2011-2012</copyright>
+    <references />
   </metadata>
 </package>

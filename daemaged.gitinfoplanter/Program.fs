@@ -106,10 +106,11 @@ module program =
 
     String.Format("{0}/{1}{2}{3}/{4}", branchOrTagName, localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
   
+  
   let readAsm sourceAsm noPdb searchDirs verbose =
     // Read the existing assembly
     let sourceInfo = new FileInfo(sourceAsm)
-    let pdbFileName = sourceInfo.FullName.Remove(sourceInfo.FullName.Length - sourceInfo.Extension.Length) + ".pdb"
+    let pdbFileName = Path.ChangeExtension(sourceInfo.FullName, ".pdb")
     let pdbExists = (not noPdb) && File.Exists(pdbFileName) 
     let ar = new DefaultAssemblyResolver()
     // Add search directories such as @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0"
@@ -240,8 +241,11 @@ module program =
          printfn "Detected changes, writing %A" destAsm
         writeAsm destAsm noPdb verbose snkp ad
     with
-    | _ as ex
-      -> printfn "Encountered %A while trying to process %A" ex sourceAsm
+      | ex ->
+        printfn "Encountered %A while trying to process %A" ex sourceAsm
+        File.Delete(destAsm)
+        File.Delete(Path.ChangeExtension(destAsm, ".pdb"))
+        reraise()
 
   [<DllImport("kernel32", CharSet = CharSet.Auto)>]
   extern IntPtr GetCommandLine()
@@ -280,7 +284,7 @@ module program =
                    | true -> ';'
                    | false -> ':'                       
     let specs =
-      ["--vebose",             ArgType.Set verbose,                                    "Display additional information"
+      ["--verbose",             ArgType.Set verbose,                                    "Display additional information"
        "--version",      ArgType.Set printVersion,                                     "Display version info"
        "--repo",         ArgType.String (fun s -> repoDir := s),                       "Path the git repository"
        "--origin",       ArgType.String (fun s -> originName := s),                    "Path the git repository"
@@ -359,11 +363,11 @@ module program =
         |> Seq.zip realInputList 
         |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o !gitInfo !baseDate !noPdb !verbose keyPair searchDirs)))    
         |> Seq.toArray
-      Task.WaitAll(tasks)    
+      Task.WaitAll(tasks)      
     else
       outputList 
       |> Seq.zip realInputList 
       |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o !gitInfo !baseDate !noPdb !verbose keyPair searchDirs)
-  
+
     0 
   

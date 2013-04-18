@@ -38,12 +38,25 @@
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\release\daemaged.gitinfoplanter.xml</DocumentationFile>
-    <StartArguments>--search-path "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0;;" --basedate 2000-01-01 --repo C:\projects\private\daemaged.gitinfoplanter.git\daemaged.gitinfoplanter\ C:\projects\private\daemaged.gitinfoplanter.git\daemaged.gitinfoplanter\bin\release\gitinfoplanter.exe C:\projects\private\daemaged.gitinfoplanter.git\daemaged.gitinfoplanter\bin\release\gitinfoplanter.tmp.exe</StartArguments>
-    <StartWorkingDirectory>C:\projects\private\sharptrader.git\src\SharpTrader.Developer.Dist\</StartWorkingDirectory>
+    <StartArguments>--verbose --search-path "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0;;" --basedate 2000-01-01 --repo C:\projects\private\xxx.git C:\projects\private\xxx.git\gitinfoplanter.exe C:\projects\private\xxx.git\gitinfoplanter2.exe</StartArguments>
+    <StartWorkingDirectory>C:\projects\private\daemaged.gitinfoplanter.git</StartWorkingDirectory>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <StartAction>Project</StartAction>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'ReleaseMerged|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <Tailcalls>true</Tailcalls>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <DocumentationFile>bin\ReleaseMerged\daemaged.gitinfoplanter.xml</DocumentationFile>
+    <StartArguments>--verbose --search-path "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.0;;" --basedate 2000-01-01 --repo C:\projects\private\xxx.git\ C:\projects\private\xxx.git\gitinfoplanter.exe</StartArguments>
+    <StartWorkingDirectory>C:\projects\private\daemaged.gitinfoplanter.git</StartWorkingDirectory>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>bin\ReleaseMerged\</OutputPath>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)/Microsoft.FSharp.targets" Condition=" '$(OS)' == 'Unix' " />
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')" />
@@ -60,7 +73,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\ICSharpCode.SharpZipLib.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130417\lib\net40\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil">
       <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.dll</HintPath>
@@ -75,43 +88,38 @@
       <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Posix">
-      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\Mono.Posix.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130417\lib\net40\Mono.Posix.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Security">
-      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\Mono.Security.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130417\lib\net40\Mono.Security.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Security.Win32">
-      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\Mono.Security.Win32.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\ngit2.2.1.0.20130417\lib\net40\Mono.Security.Win32.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="NGit">
-      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\NGit.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\ngit2.2.1.0.20130417\lib\net40\NGit.dll</HintPath>
     </Reference>
     <Reference Include="NSch">
-      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\NSch.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\ngit2.2.1.0.20130417\lib\net40\NSch.dll</HintPath>
     </Reference>
     <Reference Include="Sharpen">
-      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\Sharpen.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\ngit2.2.1.0.20130417\lib\net40\Sharpen.dll</HintPath>
     </Reference>
     <Reference Include="Sharpen.Unix">
-      <HintPath>..\packages\ngit2.2.1.0.20120927\lib\net40\Sharpen.Unix.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\ngit2.2.1.0.20130417\lib\net40\Sharpen.Unix.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
   </ItemGroup>
-  <Target Name="PlantVersionInfo">
+  <Target Name="PlantVersionInfo" Condition=" '$(Configuration)' == 'ReleaseMerged' ">
     <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(TargetDir)gitinfoplanter2.exe" />
     <Exec Command="$(TargetDir)gitinfoplanter2.exe -v --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)" />
     <Delete Files="$(TargetDir)gitinfoplanter2.exe" />
   </Target>
-  <Target Name="Pack" Inputs="$(TargetPath)" Outputs="$(TargetDir)../$(AssemblyName).exe">
-    <Exec Command="$(ProjectDir)../packages/ILRepack.1.18/tools/ILRepack.exe /wildcards /allowdup:Mono.Security.Cryptography.* /out:$(TargetDir)../$(AssemblyName).exe $(TargetPath) $(TargetDir)*.dll" />
+  <Target Name="Pack" Inputs="$(TargetPath)" Outputs="$(TargetDir)../$(AssemblyName).exe" Condition=" '$(Configuration)' == 'ReleaseMerged' ">
+    <Exec Command="$(ProjectDir)../packages/ILRepack.1.22.2/tools/ILRepack.exe /wildcards /allowdup:Mono.Security.Cryptography.* /out:$(TargetDir)../$(AssemblyName).exe $(TargetPath) $(TargetDir)*.dll" />
   </Target>
   <Target Name="AfterBuild" DependsOnTargets="PlantVersionInfo;Pack" />
 </Project>

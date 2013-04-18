@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>ngit2</id>
+    <version>2.1.0.20130417</version>
+    <title>NGit</title>
+    <authors>The JGit Team, Lluis Sanchez</authors>
+    <owners>The JGit Team, Lluis Sanchez</owners>
+    <licenseUrl>https://raw.github.com/slluis/ngit/master/NGit.license.txt</licenseUrl>
+    <projectUrl>https://github.com/slluis/ngit</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>NGit is a mechanical port of the Java JGit Library using Sharpen - this library allows you to manipulate Git repositories in C#.</description>
+    <tags>git</tags>
+    <references>
+      <reference file="ICSharpCode.SharpZipLib.dll" />
+      <reference file="Mono.Posix.dll" />
+      <reference file="Mono.Security.dll" />
+      <reference file="Mono.Security.Win32.dll" />
+      <reference file="NGit.dll" />
+      <reference file="NSch.dll" />
+      <reference file="Sharpen.dll" />
+      <reference file="Sharpen.Unix.dll" />
+    </references>
+  </metadata>
+</package>
