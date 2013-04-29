@@ -14,13 +14,15 @@ open NGit.Treewalk.Filter
 
 module gitutils =
 
-  let buildRepo repoPath = 
+  let buildRepo repoPath verbose = 
     let parent dir = 
       match Directory.GetParent(dir) with
       | null -> raise (Exception("git repo could not be found"))
       | di   -> di.FullName
 
     let rec getRepoDir dir = 
+      if verbose then
+        printfn "Testing %A for git repo" dir
       match Directory.Exists(Path.Combine(dir, NGit.Constants.DOT_GIT)) with
       | true -> dir
       | false -> getRepoDir (parent dir)

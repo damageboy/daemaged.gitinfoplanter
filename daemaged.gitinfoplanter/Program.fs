@@ -65,17 +65,28 @@ module program =
   // master/548M/c769ca88c037e9737b6669d3405c954ff4632d9e
   // master/548/c769ca88c037e9737b6669d3405c954ff4632d9e
   
-  let generateVersionInfoFromGit repoPath originName = 
-    let r = repoPath |> buildRepo
+  let generateVersionInfoFromGit repoPath originName (verbose : bool) = 
+    let r = buildRepo repoPath verbose
     let branchName = r.GetBranch()
+    
+    if verbose then
+      printfn "Current branch is %s" branchName
        
     let hc = match r |> getHead with
       | None -> raise (Exception("Cant parse head commit, bailing out"))
       | Some(c) -> c
+
+    if verbose then
+      printfn "HEAD is @ %s" hc.Id.Name
+
     let omc = 
       match r |> getRev ("refs/remotes/" + originName + "/" + branchName) with
         | None -> hc
         | Some(c) -> c
+
+    if verbose then
+      printfn "%s is @ %s" (originName + "/" + branchName) omc.Id.Name
+
   
     let modifiedCount (r : Repository) = 
       r |> getRepoStatus |> modifiedPaths |> filterSubmodules r |> Seq.length
@@ -251,13 +262,6 @@ module program =
   extern IntPtr GetCommandLine()
 
   
-  let die msg = 
-    printfn "Usage error: %s" msg
-    System.Environment.Exit(-2)
-
-  let dieusage msg = 
-    printfn "Usage error: %s" msg
-    System.Environment.Exit(-1)
 
   [<EntryPoint>]  
   let main (args : string[]) =    
@@ -284,7 +288,7 @@ module program =
                    | true -> ';'
                    | false -> ':'                       
     let specs =
-      ["--verbose",             ArgType.Set verbose,                                    "Display additional information"
+      ["--verbose",      ArgType.Set verbose,                                          "Display additional information"
        "--version",      ArgType.Set printVersion,                                     "Display version info"
        "--repo",         ArgType.String (fun s -> repoDir := s),                       "Path the git repository"
        "--origin",       ArgType.String (fun s -> originName := s),                    "Path the git repository"
@@ -303,6 +307,15 @@ module program =
       ] |> List.map (fun (sh, ty, desc) -> ArgInfo(sh, ty, desc))
     
     ArgParser.Parse(fixedArgs, specs, addArg)
+    printfn "v: %A" fixedArgs
+    let die msg = 
+      printfn "Error: %s" msg
+      System.Environment.Exit(-2)
+    
+    let dieusage msg = 
+      printfn "Usage error: %s" msg
+      ArgParser.Usage specs
+      System.Environment.Exit(-1)
   
     if !printVersion then
       let asm = Assembly.GetEntryAssembly()
@@ -345,10 +358,10 @@ module program =
     
     let gitInfo = ref "Unknown"
     try
-      gitInfo := generateVersionInfoFromGit !repoDir !originName
+      gitInfo := generateVersionInfoFromGit !repoDir !originName !verbose
     with
       | :? Exception as ex -> 
-          printfn "Failed to process git repo %s" !repoDir
+          printfn "Failed to process git repo %s: %A" !repoDir ex
           System.Environment.Exit(-1)
        
     if (!verbose) then
