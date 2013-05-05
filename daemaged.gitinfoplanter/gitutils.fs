@@ -41,7 +41,7 @@ module gitutils =
     getRev Constants.HEAD r
   
   let getRepoStatus (r : Repository) = 
-    let diff = new IndexDiff(r, Constants.HEAD, new FileTreeIterator(r))  
+    let diff = new IndexDiff(r, Constants.HEAD, new FileTreeIterator(r))         
     ignore(diff.Diff());
     new Status(diff);
   

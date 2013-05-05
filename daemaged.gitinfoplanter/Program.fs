@@ -86,7 +86,6 @@ module program =
 
     if verbose then
       printfn "%s is @ %s" (originName + "/" + branchName) omc.Id.Name
-
   
     let modifiedCount (r : Repository) = 
       r |> getRepoStatus |> modifiedPaths |> filterSubmodules r |> Seq.length
@@ -307,7 +306,7 @@ module program =
       ] |> List.map (fun (sh, ty, desc) -> ArgInfo(sh, ty, desc))
     
     ArgParser.Parse(fixedArgs, specs, addArg)
-    printfn "v: %A" fixedArgs
+    
     let die msg = 
       printfn "Error: %s" msg
       System.Environment.Exit(-2)

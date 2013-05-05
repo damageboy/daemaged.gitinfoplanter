@@ -56,7 +56,7 @@ type ArgParser() =
         let other = defaultArg other (fun _ -> ())
         let usageText = defaultArg usageText ""
         let nargs = Array.length argv 
-        incr cursor;
+        //incr cursor
         let argSpecs = argSpecs |> Seq.toList
         let specs = argSpecs |> List.map (fun (arg:ArgInfo) -> arg.Name, arg.ArgType)
         while !cursor < nargs do

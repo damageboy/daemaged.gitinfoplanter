@@ -115,7 +115,7 @@
   </ItemGroup>
   <Target Name="PlantVersionInfo" Condition=" '$(Configuration)' == 'ReleaseMerged' ">
     <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(TargetDir)gitinfoplanter2.exe" />
-    <Exec Command="$(TargetDir)gitinfoplanter2.exe -v --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)" />
+    <Exec Command="$(TargetDir)gitinfoplanter2.exe --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)" />
     <Delete Files="$(TargetDir)gitinfoplanter2.exe" />
   </Target>
   <Target Name="Pack" Inputs="$(TargetPath)" Outputs="$(TargetDir)../$(AssemblyName).exe" Condition=" '$(Configuration)' == 'ReleaseMerged' ">
