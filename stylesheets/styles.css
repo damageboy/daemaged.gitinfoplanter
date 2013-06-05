@@ -285,7 +285,7 @@ hr {
 }
 
 footer {
-  width: 640px;
+  width: 728px;
   margin: 0 auto;
   padding: 20px 0 0;
   color: #ccc;
@@ -295,12 +295,25 @@ footer a {
   color: #fff;
   font-weight: bold;
 }
-footer p {
+footer #gh_credits p {
   float: left;
 }
-footer p + p {
+footer #gh_credits p + p {
   float: right;
 }
+
+footer #codebetter {
+  clear:both;
+  background: #00578e url('http://www.jetbrains.com/img/banners/Codebetter.png') no-repeat 0 50%; 
+  margin:0;
+  padding:0;
+  text-decoration:none;
+  text-indent:0;
+  letter-spacing:-0.001em; 
+  width:728px; 
+  height:90px;
+}
+
 
 @media print, screen and (max-width: 740px) {
   body {
