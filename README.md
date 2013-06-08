@@ -79,8 +79,18 @@ Console.WriteLine("MyProduct - {0}", versionString);
 ```
 
 ## OK, I'm sold, how do I put this in my build process? ##
-OK, so that is perhaps a slightly weak side of this project... it's integration level with IDE etc.
-The best way would be to simply add it as an after build step in Visual Studio / MonoDevelop / MSBuild.
+
+Two ways:
+### Nuget ###
+
+The GitInfoPlanter nuget package (when installed with NuGet 2.5 and above) automatically hooks itself into the build process to plant the git information into the assembly. This is *by far* the easiest method to get started. 
+
+To install the package:
+
+`Right Click` your project → Select `Manage NuGet Packages` → Select `Online` on the left pane → type `gitinfoplanter` into the search →  select `Install` and you done!
+
+### Manually ###
+The manual way would be to simply add it as an after build step in Visual Studio / MonoDevelop / MSBuild.
 
 To do this you need to follow this "recipe":
 
@@ -94,7 +104,7 @@ To do this you need to follow this "recipe":
 
 ```
 <AfterBuild>
-  <Exec Command="$(ProjectDir)../packages/GitInfoPlanter.1.2/tools/gitinfoplanter.exe --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)"/>
+  <Exec Command="$(ProjectDir)../packages/GitInfoPlanter.X.Y/tools/gitinfoplanter.exe --search-path &quot;$(TargetFrameworkDirectory)&quot; --basedate 2000-01-01 --repo $(ProjectDir) $(TargetPath) $(TargetPath)"/>
 </AfterBuild>
 ```
 
