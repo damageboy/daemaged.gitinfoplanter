@@ -13,6 +13,7 @@
     <copyright>Copyright © Dan Shechter 2011-2012</copyright>
   </metadata>
   <files>
-    <file src="bin\gitinfoplanter.exe" target="tools" />    
+    <file src="bin\gitinfoplanter.exe" target="tools" />
+    <file src="GitInfoPlanter.targets" target="build" />
   </files>
 </package>
