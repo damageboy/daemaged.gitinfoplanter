@@ -13,6 +13,6 @@
     <copyright>Copyright © Dan Shechter 2011-2012</copyright>
   </metadata>
   <files>
-    <file src="daemaged.gitinfoplanter\bin\gitinfoplanter.exe" target="tools" />    
+    <file src="bin\gitinfoplanter.exe" target="tools" />    
   </files>
 </package>
