@@ -113,8 +113,15 @@ module program =
       | Some v when modifiedNum = 0 && aheadOfOriginBy = 0 
           -> v.Key
       | _ -> branchName
+    (
+      String.Format("{0}/{1}{2}{3}/{4}", branchOrTagName, localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name),
+      branchOrTagName,
+      localRevNo,
+      aheadOfOriginBy,
+      modifiedNum > 0,
+      hc.Id.Name
+    )
 
-    String.Format("{0}/{1}{2}{3}/{4}", branchOrTagName, localRevNo, aheadOfOriginByStr, modifiedStr, hc.Id.Name)
   
   
   let readAsm sourceAsm noPdb searchDirs verbose =
@@ -145,7 +152,7 @@ module program =
     | _ as ex
       ->  raise <| new Exception(String.Format("Failed to assembly {0}", sourceAsm), ex)
   
-  let plantInfoIfNeeded gitInfo baseDate (ad : AssemblyDefinition) verbose =
+  let plantInfoIfNeeded gitInfo (metadata : Dictionary<string, Object>) baseDate (ad : AssemblyDefinition) verbose =
     // Get the main module for future ref
     let md = ad.MainModule
   
@@ -181,7 +188,7 @@ module program =
       | None -> ""
       | Some(attr) -> (attr.ConstructorArguments.[0].Value :?> string)
   
-    let insertCustomAttr (ad : AssemblyDefinition) (t : Type) (ctorArg : string) =
+    let insertCustomAttr (ad : AssemblyDefinition) (t : Type) (ctorArg: string) (anotherArg : string) =
       // Inject new attributes into the assembly
       let strType = md.TypeSystem.String
       let corlib = md.TypeSystem.Corlib :?> AssemblyNameReference
@@ -190,6 +197,8 @@ module program =
       let attrCtor = attrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 1 && m.Parameters.[0].ParameterType.FullName = strType.FullName)
       let newAttr = new CustomAttribute (md.Import(attrCtor));
       newAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, ctorArg));
+      if (anotherArg <> null) then
+        newAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, anotherArg));
       ad.CustomAttributes.Add(newAttr)
   
     // Get the current version in the assembly definition and generate a file version out of it
@@ -202,7 +211,11 @@ module program =
       if (verbose) then
         printfn "Detected change in AssemblyFileVersionAttribute"
       removeCustomAttrTypes ad typeof<AssemblyFileVersionAttribute>
-      insertCustomAttr ad typeof<AssemblyFileVersionAttribute> fileVersionStr
+      insertCustomAttr ad typeof<AssemblyFileVersionAttribute> fileVersionStr null
+#if NET_4_5
+      removeCustomAttrTypes ad typeof<AssemblyMetadataAttribute>
+      metadata |> Seq.iter (fun kvp -> insertCustomAttr ad typeof<AssemblyMetadataAttribute> kvp.Key (kvp.Value.ToString()))
+#endif      
       hasChanges <- true
   
   
@@ -210,7 +223,7 @@ module program =
       if (verbose) then
         printfn "Detected change in AssemblyInformationalVersionAttribute"
       removeCustomAttrTypes ad typeof<AssemblyInformationalVersionAttribute> 
-      insertCustomAttr ad typeof<AssemblyInformationalVersionAttribute> fileInfoStr
+      insertCustomAttr ad typeof<AssemblyInformationalVersionAttribute> fileInfoStr null
       hasChanges <- true
    
     if (verbose && not hasChanges) then
@@ -242,10 +255,10 @@ module program =
       Syscall.chmod(destAsm, FilePermissions.S_IRWXU ||| FilePermissions.S_IRGRP ||| FilePermissions.S_IXGRP ||| FilePermissions.S_IROTH ||| FilePermissions.S_IXOTH) |> ignore
   
   // Do the whole thing, read, plant the git-info, write
-  let patchAssembly sourceAsm destAsm (gitInfo : string) (baseDate : DateTime) noPdb verbose snkp searchDirs =
+  let patchAssembly sourceAsm destAsm (gitInfo : string) (metadata : Dictionary<string, Object>) (baseDate : DateTime) noPdb verbose snkp searchDirs =
     try 
       let ad = readAsm sourceAsm noPdb searchDirs verbose 
-      let hasChanges = plantInfoIfNeeded gitInfo baseDate ad verbose
+      let hasChanges = plantInfoIfNeeded gitInfo metadata baseDate  ad verbose
       if hasChanges then
         if verbose then
          printfn "Detected changes, writing %A" destAsm
@@ -356,8 +369,20 @@ module program =
        | _ -> realInputList |> List.map (fun fi -> Path.Combine(output, fi.Name))
     
     let gitInfo = ref "Unknown"
+    let metaData = new Dictionary<string, Object>()
     try
-      gitInfo := generateVersionInfoFromGit !repoDir !originName !verbose
+      let (infoStr, branch, localRevNum, aheadOfBy, isModifiedLocally, commitId) =
+        generateVersionInfoFromGit !repoDir !originName !verbose
+      metaData.Add("Branch", branch)
+      metaData.Add("Revision #", localRevNum)
+      metaData.Add("Ahead By", aheadOfBy)
+      metaData.Add("Contains Local Modifications", isModifiedLocally)
+      metaData.Add("CommitId", commitId)
+      metaData.Add("Build Date", DateTime.Now.Date.ToString("yyyy-MM-dd"))
+      metaData.Add("Build Day", DateTime.Now.Subtract(!baseDate).TotalDays)
+            
+      gitInfo := infoStr
+
     with
       | :? Exception as ex -> 
           printfn "Failed to process git repo %s: %A" !repoDir ex
@@ -373,13 +398,13 @@ module program =
       let tasks = 
         outputList 
         |> Seq.zip realInputList 
-        |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o !gitInfo !baseDate !noPdb !verbose keyPair searchDirs)))    
+        |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o !gitInfo metaData !baseDate !noPdb !verbose keyPair searchDirs)))    
         |> Seq.toArray
       Task.WaitAll(tasks)      
     else
       outputList 
       |> Seq.zip realInputList 
-      |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o !gitInfo !baseDate !noPdb !verbose keyPair searchDirs)
+      |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o !gitInfo metaData !baseDate !noPdb !verbose keyPair searchDirs)
 
     0 
   
