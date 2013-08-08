@@ -42,8 +42,22 @@ open cmdlinefixer
 module program =
   let notWindows = Environment.OSVersion.Platform <> PlatformID.Win32NT
   let isWindows = not notWindows
-  
-  
+
+  type Options() =
+    member val Verbose = false with get, set
+    member val SkipPdb = false with get, set
+    member val SkipMissing = false with get, set
+    member val Parallel = false  with get, set
+    member val PrintVersion = false with get, set
+    member val KeyPair = null:StrongNameKeyPair with get, set
+    member val SearchDirs = new List<string>() with get
+    member val RepoDir = String.Empty with get, set
+    member val OriginName = "origin" with get, set
+    member val TargetPlatform = "v4.0" with get, set
+    member val BaseDate = DateTime.Now with get, set
+
+  let options = new Options()
+
   // Append a build-date number to the version
   let generateFileVersion (ver : Version) (baseDate : DateTime) =
     ver.ToString() + "." + int(DateTime.Now.Subtract(baseDate).TotalDays).ToString()
@@ -65,7 +79,8 @@ module program =
   // master/548M/c769ca88c037e9737b6669d3405c954ff4632d9e
   // master/548/c769ca88c037e9737b6669d3405c954ff4632d9e
   
-  let generateVersionInfoFromGit repoPath originName (verbose : bool) = 
+  let generateVersionInfoFromGit repoPath originName  = 
+    let verbose = options.Verbose
     let r = buildRepo repoPath verbose
     let branchName = r.GetBranch()
     
@@ -124,7 +139,11 @@ module program =
 
   
   
-  let readAsm sourceAsm noPdb searchDirs verbose =
+  let readAsm sourceAsm =
+    let noPdb = options.SkipPdb
+    let searchDirs = options.SearchDirs
+    let verbose = options.Verbose
+
     // Read the existing assembly
     let sourceInfo = new FileInfo(sourceAsm)
     let pdbFileName = Path.ChangeExtension(sourceInfo.FullName, ".pdb")
@@ -152,7 +171,9 @@ module program =
     | _ as ex
       ->  raise <| new Exception(String.Format("Failed to assembly {0}", sourceAsm), ex)
   
-  let plantInfoIfNeeded gitInfo (metadata : Dictionary<string, Object>) baseDate (ad : AssemblyDefinition) verbose =
+  let plantInfoIfNeeded gitInfo (metadata : Dictionary<string, Object>) (ad : AssemblyDefinition) =
+    let baseDate = options.BaseDate
+    let verbose = options.Verbose
     // Get the main module for future ref
     let md = ad.MainModule
   
@@ -170,11 +191,11 @@ module program =
       else
         Some(Seq.head attrs)
   
-    let removeCustomAttrTypes (ad : AssemblyDefinition) (t : Type)  =
+    let removeCustomAttrTypes (ad : AssemblyDefinition) t  =
       let existingAttrIdx = 
         ad.CustomAttributes 
         |> Seq.mapi (fun i attr -> (i, attr))     
-        |> Seq.filter (fun (i, attr) -> isAttrOfType t attr)
+        |> Seq.filter (fun (i, attr) -> t = attr.Constructor.DeclaringType.FullName)
         |> Seq.map (fun (i, attr) -> i) |> Seq.toArray |> Array.rev
       existingAttrIdx |> Seq.iter ad.CustomAttributes.RemoveAt
     
@@ -188,18 +209,34 @@ module program =
       | None -> ""
       | Some(attr) -> (attr.ConstructorArguments.[0].Value :?> string)
   
-    let insertCustomAttr (ad : AssemblyDefinition) (t : Type) (ctorArg: string) (anotherArg : string) =
+    let insertCustomAttr (ad : AssemblyDefinition) t ctorArg anotherArg =
       // Inject new attributes into the assembly
+      let verbose = options.Verbose
       let strType = md.TypeSystem.String
       let corlib = md.TypeSystem.Corlib :?> AssemblyNameReference
       let corlibDef = md.AssemblyResolver.Resolve(new AssemblyNameReference ("mscorlib", corlib.Version, PublicKeyToken = corlib.PublicKeyToken))
-      let attrDef = corlibDef.MainModule.GetType t.FullName;
-      let attrCtor = attrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 1 && m.Parameters.[0].ParameterType.FullName = strType.FullName)
-      let newAttr = new CustomAttribute (md.Import(attrCtor));
-      newAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, ctorArg));
-      if (anotherArg <> null) then
+      let attrDef = corlibDef.MainModule.GetType t
+      if attrDef = null then
+        raise <| new Exception("Couldn't find attribute definition for " + t)
+      if String.IsNullOrEmpty(anotherArg) then
+        if verbose then
+          printfn "Adding %s(%A)" t ctorArg 
+        let attrCtor = attrDef.Methods |> Seq.find (fun m -> m.IsConstructor && m.Parameters.Count = 1 && m.Parameters.[0].ParameterType.FullName = strType.FullName)        
+        let newAttr = new CustomAttribute (md.Import(attrCtor));
+        newAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, ctorArg));
+        ad.CustomAttributes.Add(newAttr)
+      else
+        if verbose then
+          printfn "Adding %s(%A,%A)" t ctorArg anotherArg
+        let attrCtor = attrDef.Methods |> Seq.find (fun m -> 
+          m.IsConstructor && 
+          m.Parameters.Count = 2 && 
+          m.Parameters.[0].ParameterType.FullName = strType.FullName && 
+          m.Parameters.[1].ParameterType.FullName = strType.FullName)
+        let newAttr = new CustomAttribute (md.Import(attrCtor));
+        newAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, ctorArg));      
         newAttr.ConstructorArguments.Add(new CustomAttributeArgument(strType, anotherArg));
-      ad.CustomAttributes.Add(newAttr)
+        ad.CustomAttributes.Add(newAttr)
   
     // Get the current version in the assembly definition and generate a file version out of it
     let fileVersionStr = generateFileVersion ad.Name.Version baseDate
@@ -210,36 +247,37 @@ module program =
     if (currentFileVersionStr <> fileVersionStr) then
       if (verbose) then
         printfn "Detected change in AssemblyFileVersionAttribute"
-      removeCustomAttrTypes ad typeof<AssemblyFileVersionAttribute>
-      insertCustomAttr ad typeof<AssemblyFileVersionAttribute> fileVersionStr null
-#if NET_4_5
-      removeCustomAttrTypes ad typeof<AssemblyMetadataAttribute>
-      metadata |> Seq.iter (fun kvp -> insertCustomAttr ad typeof<AssemblyMetadataAttribute> kvp.Key (kvp.Value.ToString()))
-#endif      
+      removeCustomAttrTypes ad typeof<AssemblyFileVersionAttribute>.FullName
+      insertCustomAttr ad typeof<AssemblyFileVersionAttribute>.FullName fileVersionStr null
+      if (options.TargetPlatform = "v4.5") then                
+        removeCustomAttrTypes ad "System.Reflection.AssemblyMetadataAttribute"
+        metadata |> Seq.iter (fun kvp -> insertCustomAttr ad "System.Reflection.AssemblyMetadataAttribute" kvp.Key (kvp.Value.ToString()))
       hasChanges <- true
   
   
     if (currentFileInfoStr <> fileInfoStr) then
       if (verbose) then
         printfn "Detected change in AssemblyInformationalVersionAttribute"
-      removeCustomAttrTypes ad typeof<AssemblyInformationalVersionAttribute> 
-      insertCustomAttr ad typeof<AssemblyInformationalVersionAttribute> fileInfoStr null
+      removeCustomAttrTypes ad typeof<AssemblyInformationalVersionAttribute>.FullName
+      insertCustomAttr ad typeof<AssemblyInformationalVersionAttribute>.FullName fileInfoStr null
       hasChanges <- true
    
     if (verbose && not hasChanges) then
       printfn "No changes detected %A/%A" currentFileVersionStr currentFileInfoStr
     hasChanges
   
-  let writeAsm destAsm noPdb verbose snkp (ad : AssemblyDefinition) = 
+  let writeAsm destAsm (ad : AssemblyDefinition) = 
+    let snkp = options.KeyPair
+    let verbose = options.Verbose
     // Force signing the new assembly if we were passed a SNK file ref
     let nullsnkp = ref (null : StrongNameKeyPair)
-    if snkp <> nullsnkp then
+    if snkp <> null then
       let adName = ad.Name
       adName.HashAlgorithm <- AssemblyHashAlgorithm.SHA1
-      adName.PublicKey <- (!snkp).PublicKey    
+      adName.PublicKey <- snkp.PublicKey    
       ad.Name.Attributes <- ad.Name.Attributes ||| AssemblyAttributes.PublicKey
    
-    let wp = new WriterParameters(WriteSymbols = ad.MainModule.HasSymbols, StrongNameKeyPair = !snkp)
+    let wp = new WriterParameters(WriteSymbols = ad.MainModule.HasSymbols, StrongNameKeyPair = snkp)
     if (wp.WriteSymbols) then wp.SymbolWriterProvider <- new PdbWriterProvider()
   
     if verbose then
@@ -255,14 +293,15 @@ module program =
       Syscall.chmod(destAsm, FilePermissions.S_IRWXU ||| FilePermissions.S_IRGRP ||| FilePermissions.S_IXGRP ||| FilePermissions.S_IROTH ||| FilePermissions.S_IXOTH) |> ignore
   
   // Do the whole thing, read, plant the git-info, write
-  let patchAssembly sourceAsm destAsm (gitInfo : string) (metadata : Dictionary<string, Object>) (baseDate : DateTime) noPdb verbose snkp searchDirs =
+  let patchAssembly sourceAsm destAsm (gitInfo : string) (metadata : Dictionary<string, Object>)  =
     try 
-      let ad = readAsm sourceAsm noPdb searchDirs verbose 
-      let hasChanges = plantInfoIfNeeded gitInfo metadata baseDate  ad verbose
+      let verbose = options.Verbose
+      let ad = readAsm sourceAsm 
+      let hasChanges = plantInfoIfNeeded gitInfo metadata ad
       if hasChanges then
         if verbose then
          printfn "Detected changes, writing %A" destAsm
-        writeAsm destAsm noPdb verbose snkp ad
+        writeAsm destAsm ad
     with
       | ex ->
         printfn "Encountered %A while trying to process %A" ex sourceAsm
@@ -273,8 +312,6 @@ module program =
   [<DllImport("kernel32", CharSet = CharSet.Auto)>]
   extern IntPtr GetCommandLine()
 
-  
-
   [<EntryPoint>]  
   let main (args : string[]) =    
     let argList = new List<string>()
@@ -284,37 +321,29 @@ module program =
                    | false -> args             
     let addArg s = argList.Add(s)
     
-    let verbose = ref false
-    let noPdb = ref false
-    let skipMissing = ref false
-    let useTasks = ref false
-    let printVersion = ref false
-    let keyPair = ref (null : StrongNameKeyPair)
-    let searchDirs = new List<string>()
-    let repoDir = ref ""
-    let originName = ref "origin"
-    let baseDate = ref DateTime.Now
     let snkp fn = new StrongNameKeyPair(File.Open(fn, FileMode.Open))
-    let ic = System.Globalization.CultureInfo.InvariantCulture
+    let parseDate s =
+      let ic = System.Globalization.CultureInfo.InvariantCulture
+      DateTime.ParseExact(s, "yyyy-MM-dd", ic)
     let argsep = match isWindows with
                    | true -> ';'
                    | false -> ':'                       
+    
+    let o = options
     let specs =
-      ["--verbose",      ArgType.Set verbose,                                          "Display additional information"
-       "--version",      ArgType.Set printVersion,                                     "Display version info"
-       "--repo",         ArgType.String (fun s -> repoDir := s),                       "Path the git repository"
-       "--origin",       ArgType.String (fun s -> originName := s),                    "Path the git repository"
-       "--nopdb",        ArgType.Set noPdb,                                            "Skip creation of PDB files"
-       "--skip-missing", ArgType.Set skipMissing,                                      "Skip missing input files silently"
-       "--parallel",     ArgType.Set useTasks,                                         "Execute task in parallel on all available CPUs"   
-       "--search-path",  ArgType.String 
-                            (fun s -> searchDirs.AddRange(s.Split(argsep))),           "Base date for build date"     
-       "--basedate",     ArgType.String 
-                            (fun s -> baseDate := 
-                                 DateTime.ParseExact(s, "yyyy-MM-dd", ic)),            "Base date for build date"     
-       "--keyfile",      ArgType.String (fun s -> keyPair := snkp s),                  "Key pair to sign the assembly with"
-
-       "--",             ArgType.Rest addArg,                                          "Stop parsing command line"
+      ["--verbose",      ArgType.Unit   (fun x -> o.Verbose <- true),            "Display additional information"
+       "--version",      ArgType.Unit   (fun x -> o.PrintVersion <- true),       "Display version info"
+       "--repo",         ArgType.String (fun s -> o.RepoDir <- s),               "Path the git repository"
+       "--origin",       ArgType.String (fun s -> o.OriginName <- s),            "Name of origin to compare to"
+       "--nopdb",        ArgType.Unit   (fun x -> o.SkipPdb <- true),            "Skip creation of PDB files"
+       "--platform",     ArgType.String (fun s -> o.TargetPlatform <- s),        "Specify target platform (.NET 4.0 by default)"
+       "--skip-missing", ArgType.Unit   (fun x -> o.SkipMissing <- true),        "Skip missing input files silently"
+       "--parallel",     ArgType.Unit   (fun x -> o.Parallel <- true),           "Execute task in parallel on all available CPUs"   
+       "--search-path",  ArgType.String (fun s -> o.SearchDirs.AddRange(s.Split(argsep))),  
+                                                                                 "Set the search path for assemblies"     
+       "--basedate",     ArgType.String (fun s -> o.BaseDate <- parseDate s),    "Base date for build date"     
+       "--keyfile",      ArgType.String (fun s -> o.KeyPair <- snkp s),          "Key pair to sign the assembly with"
+       "--",             ArgType.Rest addArg,                                    "Stop parsing command line"
   
       ] |> List.map (fun (sh, ty, desc) -> ArgInfo(sh, ty, desc))
     
@@ -329,7 +358,7 @@ module program =
       ArgParser.Usage specs
       System.Environment.Exit(-1)
   
-    if !printVersion then
+    if o.PrintVersion then
       let asm = Assembly.GetEntryAssembly()
       let fva = 
         asm.GetCustomAttributes(typeof<AssemblyFileVersionAttribute>, false) |> Seq.head :?> AssemblyFileVersionAttribute
@@ -338,8 +367,8 @@ module program =
       printfn "%s version %s" (asm.GetName().Name) fiva.InformationalVersion
       System.Environment.Exit(0)
     
-    if (!verbose) && searchDirs.Count > 0 then 
-      printfn "Search path is %A" (String.Join(":", searchDirs))
+    if (o.Verbose) && o.SearchDirs.Count > 0 then 
+      printfn "Search path is %A" (String.Join(":", o.SearchDirs))
 
     if argList.Count < 2 then
       dieusage "a single input and single output must be supplied at the minimum"      
@@ -348,16 +377,16 @@ module program =
     
     argList.RemoveAt(argList.Count - 1)  
     let inputList = List.ofSeq argList
-    if (!verbose) then
+    if (o.Verbose) then
       printfn "Input file list: %A" inputList    
-      if !keyPair <> null then
-        printfn "key-pair=%A" (!keyPair).PublicKey
+      if o.KeyPair <> null then
+        printfn "key-pair=%A" (o.KeyPair).PublicKey
   
-    let realInputList = match !skipMissing with
+    let realInputList = match o.SkipMissing with
       | true -> inputList |> List.map (fun i -> new FileInfo(i)) |> List.filter (fun fi -> fi.Exists)
       | false -> inputList |> List.map (fun i -> new FileInfo(i))
   
-    if (not(!skipMissing) && (realInputList |> Seq.exists (fun x -> not(x.Exists)))) then
+    if (not(o.SkipMissing) && (realInputList |> Seq.exists (fun x -> not(x.Exists)))) then
       die "Some input files are missing... aborting"
 
     if List.isEmpty realInputList then
@@ -372,39 +401,39 @@ module program =
     let metaData = new Dictionary<string, Object>()
     try
       let (infoStr, branch, localRevNum, aheadOfBy, isModifiedLocally, commitId) =
-        generateVersionInfoFromGit !repoDir !originName !verbose
+        generateVersionInfoFromGit o.RepoDir o.OriginName
       metaData.Add("Branch", branch)
       metaData.Add("Revision #", localRevNum)
       metaData.Add("Ahead By", aheadOfBy)
       metaData.Add("Contains Local Modifications", isModifiedLocally)
       metaData.Add("CommitId", commitId)
       metaData.Add("Build Date", DateTime.Now.Date.ToString("yyyy-MM-dd"))
-      metaData.Add("Build Day", DateTime.Now.Subtract(!baseDate).TotalDays)
+      metaData.Add("Build Day", DateTime.Now.Subtract(o.BaseDate).TotalDays)
             
       gitInfo := infoStr
 
     with
       | :? Exception as ex -> 
-          printfn "Failed to process git repo %s: %A" !repoDir ex
+          printfn "Failed to process git repo %s: %A" o.RepoDir ex
           System.Environment.Exit(-1)
        
-    if (!verbose) then
+    if (o.Verbose) then
       printfn "About to plant \'%A\' as the git version info" gitInfo
   
-    if (!verbose) then
+    if (o.Verbose) then
       printfn "Output file list: %A" outputList
     
-    if !useTasks then
+    if o.Parallel then
       let tasks = 
         outputList 
         |> Seq.zip realInputList 
-        |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o !gitInfo metaData !baseDate !noPdb !verbose keyPair searchDirs)))    
+        |> Seq.map (fun (i, o) -> Task.Factory.StartNew(new Action(fun () -> patchAssembly i.FullName o !gitInfo metaData)))    
         |> Seq.toArray
       Task.WaitAll(tasks)      
     else
       outputList 
       |> Seq.zip realInputList 
-      |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o !gitInfo metaData !baseDate !noPdb !verbose keyPair searchDirs)
+      |> Seq.iter (fun (i, o) -> patchAssembly i.FullName o !gitInfo metaData)
 
     0 
   
