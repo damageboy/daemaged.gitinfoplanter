@@ -73,7 +73,8 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\packages\ngit2.2.1.0.20130431\lib\net40\ICSharpCode.SharpZipLib.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130924\lib\net40\ICSharpCode.SharpZipLib.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Mono.Cecil">
       <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.dll</HintPath>
@@ -88,26 +89,33 @@
       <HintPath>..\packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.Rocks.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Posix">
-      <HintPath>..\packages\ngit2.2.1.0.20130431\lib\net40\Mono.Posix.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130924\lib\net40\Mono.Posix.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Mono.Security">
-      <HintPath>..\packages\ngit2.2.1.0.20130431\lib\net40\Mono.Security.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130924\lib\net40\Mono.Security.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Mono.Security.Win32">
-      <HintPath>..\packages\ngit2.2.1.0.20130431\lib\net40\Mono.Security.Win32.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130924\lib\net40\Mono.Security.Win32.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="NGit">
-      <HintPath>..\packages\ngit2.2.1.0.20130431\lib\net40\NGit.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130924\lib\net40\NGit.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="NSch">
-      <HintPath>..\packages\ngit2.2.1.0.20130431\lib\net40\NSch.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130924\lib\net40\NSch.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Sharpen">
-      <HintPath>..\packages\ngit2.2.1.0.20130431\lib\net40\Sharpen.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130924\lib\net40\Sharpen.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Sharpen.Unix">
-      <HintPath>..\packages\ngit2.2.1.0.20130431\lib\net40\Sharpen.Unix.dll</HintPath>
+      <HintPath>..\packages\ngit2.2.1.0.20130924\lib\net40\Sharpen.Unix.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
