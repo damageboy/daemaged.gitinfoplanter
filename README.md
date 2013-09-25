@@ -2,6 +2,10 @@
 
 gitinfoplanter.exe automates the process of reading your git repo status and embedding it as an easy to use string in an assembly level attribute of your .NET executable.
 
+# 30 Second Intro
+
+<img src="http://damageboy.github.io/daemaged.gitinfoplanter/images/GitInfoPlanter-nuget.gif" />
+
 ## Git Repo String ##
 
 So how does a version string look?  
@@ -31,8 +35,8 @@ However, this revision # may have appendages:
 ## Where/How does this get embedded? ##
 The git info planter uses cecil to re-write the assembly and embed two assembly level attributes:
 
-- `[AssemblyFileVersionAttribute]` will be embedded with the first part of the full string as it's value (1.1.0.0.4658 in the previous example)
-- `[AssemblyInformationalVersionAttribute]` will be embedded with the full string as it's value
+- [`[AssemblyFileVersionAttribute]`](http://msdn.microsoft.com/en-us/library/system.reflection.assemblyfileversionattribute.aspx) will be embedded with the first part of the full string as it's value (1.1.0.0.4658 in the previous example)
+- [`[AssemblyInformationalVersionAttribute]`](http://msdn.microsoft.com/en-us/library/system.reflection.assemblyinformationalversionattribute.aspx) will be embedded with the full string as it's value
 
 So, you can think of the resulting assemblly *as-if* someone went back to your code, and edited you AssemblyInfo.cs file from this:
 
@@ -62,6 +66,30 @@ using System.Reflection;
 ```
 
 Of course, no real changes to the code were actually made, however the resulting binary will contain the additional attributes
+
+## .NET 4.5 specific attributes
+
+If you are targeting the .NET 4.5 framework, there's an additional attribute called [`[AssemblyMetadataAttribute]`](http://msdn.microsoft.com/en-us/library/system.reflection.assemblymetadataattribute.aspx "AssemblyMetadata Attribute ") that's available from 4.5 onwards, which is used to insert each part of the metada separately like this:
+```c#
+using System.Reflection;
+
+[assembly: AssemblyTitle("Daemaged.GitInfoPlanter")]
+[assembly: AssemblyDescription("Plant git information into .NET assemblies")]
+[assembly: AssemblyCompany("Damage INC.")]
+[assembly: AssemblyProduct("Daemaged.GitInfoPlanter")]
+[assembly: AssemblyCopyright("Copyright (C) Dan Shechter, Inc. 2010")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersionAttribute("1.1.0.0.4658")]
+[assembly: AssemblyInformationalVersionAttribute("1.1.0.0.4658/master/20/1e5356fd2bdbde4b5c82552844e6eb5ed6d5a9f2")]
+[assembly: AssemblyMetadata("Branch", "master")]
+[assembly: AssemblyMetadata("Revision #", "20")]
+[assembly: AssemblyMetadata("Ahead By", "0")]
+[assembly: AssemblyMetadata("Contains Local Modifications", "False")]
+[assembly: AssemblyMetadata("CommitId", "1e5356fd2bdbde4b5c82552844e6eb5ed6d5a9f2")]
+[assembly: AssemblyMetadata("Build Date", "2012-06-09")]
+[assembly: AssemblyMetadata("Build Day", "4658")]
+```
+
 
 ## How do I retrieve these attributes at runtime? ##
 
