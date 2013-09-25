@@ -367,3 +367,23 @@ footer #codebetter {
     content: 'at http://github.com/';
   }
 }
+
+.gif-post {
+    overflow: hidden;
+    position: relative;
+}
+
+.gif-post span.play {
+    position: absolute;
+    top: 50%;
+    margin-top: -30px;
+    left: 50%;
+    margin-left: -30px;
+    height: 70px;
+    width: 70px;
+    text-indent: -999px;
+    overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: hidden;
+    background: url("../images/icon-gif-play.png") no-repeat scroll 0% 0% transparent;
+}

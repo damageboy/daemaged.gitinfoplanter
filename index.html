@@ -8,7 +8,16 @@
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
     <script src="javascripts/scale.fix.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <script language="javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">    
+    <script type="text/javascript">
+$(document).ready(function()
+{    
+    $("#introanim").hover(
+        function() { $(this).attr("src", "images/GitInfoPlanter-nuget.gif"); $(this).parent().removeClass("gif-post"); },
+        function() { $(this).attr("src", "images/GitInfoPlanter-nuget.png"); $(this).parent().addClass("gif-post");});
+});
+</script>
 
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -30,6 +39,12 @@
         <h1>Plant git repo information in .NET assemblies</h1>
 
 <p>gitinfoplanter.exe automates the process of reading your git repo status and embedding it as an easy to use string in an assembly level attribute of your .NET executable.</p>
+
+<h2>30 Second Intro</h2>
+<div class="gif-post">
+<img id="introanim" src="images/GitInfoPlanter-nuget.png" />
+<span class="play">Play</span>
+</div>
 
 <h2>Git Repo String</h2>
 
