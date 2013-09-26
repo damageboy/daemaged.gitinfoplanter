@@ -8,14 +8,22 @@
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
     <script src="javascripts/scale.fix.js"></script>
-    <script language="javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script language="javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>    
+    <script src="javascripts/freezeframe.min.js"></script>    
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">    
-    <script type="text/javascript">
+<!--    <script type="text/javascript">
 $(document).ready(function()
 {    
     $("#introanim").hover(
         function() { $(this).attr("src", "images/GitInfoPlanter-nuget.gif"); $(this).parent().removeClass("gif-post"); },
         function() { $(this).attr("src", "images/GitInfoPlanter-nuget.png"); $(this).parent().addClass("gif-post");});
+});
+</script>
+-->
+<script type="text/javascript">
+  freezeframe = new FreezeFrame({	
+  animation_icon_image: "images/icon-gif-play.png",
+  animation_icon_position: "center center"	
 });
 </script>
 
@@ -41,11 +49,8 @@ $(document).ready(function()
 <p>gitinfoplanter.exe automates the process of reading your git repo status and embedding it as an easy to use string in an assembly level attribute of your .NET executable.</p>
 
 <h2>30 Second Intro</h2>
-<div class="gif-post">
-<img id="introanim" src="images/GitInfoPlanter-nuget.png" />
-<span class="play">Play</span>
-</div>
 
+<img src="images/GitInfoPlanter-nuget.gif" freezeframe />
 <h2>Git Repo String</h2>
 
 <p>So how does a version string look?<br>
