@@ -82,7 +82,7 @@ module program =
 
   let generateVersionInfoFromGit repoPath originName  =
     let verbose = options.Verbose
-    let r = buildRepo repoPath verbose
+    let (r, repoRoot) = buildRepo repoPath verbose
     let branchName = r.GetBranch()
 
     if verbose then
@@ -135,7 +135,8 @@ module program =
       localRevNo,
       aheadOfOriginBy,
       modifiedNum > 0,
-      hc.Id.Name
+      hc.Id.Name,
+      repoRoot
     )
 
   let readAsm sourceAsm =
@@ -403,7 +404,7 @@ module program =
     let gitInfo = ref "Unknown"
     let metaData = new Dictionary<string, Object>()
     try
-      let (infoStr, branch, localRevNum, aheadOfBy, isModifiedLocally, commitId) =
+      let (infoStr, branch, localRevNum, aheadOfBy, isModifiedLocally, commitId, repoRoot) =
         generateVersionInfoFromGit o.RepoDir o.OriginName
       metaData.Add("Branch", branch)
       metaData.Add("Revision #", localRevNum)
@@ -412,6 +413,13 @@ module program =
       metaData.Add("CommitId", commitId)
       metaData.Add("Build Date", DateTime.Now.Date.ToString("yyyy-MM-dd"))
       metaData.Add("Build Day", DateTime.Now.Subtract(o.BaseDate).TotalDays)
+      let hostname = Environment.MachineName
+      metaData.Add("Hostname", hostname)
+      let username = match Environment.UserDomainName with
+        | hostname -> Environment.UserName
+        | _ -> Environment.UserDomainName + "\\" + Environment.UserName
+      metaData.Add("Username", username)
+      metaData.Add("Local Dir", repoRoot)
       if String.IsNullOrWhiteSpace(o.BuildId) then
         metaData.Add("Build Id", o.BuildId)
 
