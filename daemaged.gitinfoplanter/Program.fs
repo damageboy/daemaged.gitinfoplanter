@@ -412,6 +412,8 @@ module program =
       metaData.Add("CommitId", commitId)
       metaData.Add("Build Date", DateTime.Now.Date.ToString("yyyy-MM-dd"))
       metaData.Add("Build Day", DateTime.Now.Subtract(o.BaseDate).TotalDays)
+      if String.IsNullOrWhiteSpace(o.BuildId) then
+        metaData.Add("Build Id", o.BuildId)
 
       gitInfo := infoStr
 
