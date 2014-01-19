@@ -378,28 +378,35 @@ module program =
       dieusage "a single input and single output must be supplied at the minimum"
 
     let output = argList.[argList.Count - 1]
+    let isOutputDir = Directory.Exists output
 
     argList.RemoveAt(argList.Count - 1)
-    let inputList = List.ofSeq argList
+
     if (o.Verbose) then
-      printfn "Input file list: %A" inputList
+      printfn "Input file list: %A" argList
       if o.KeyPair <> null then
         printfn "key-pair=%A" (o.KeyPair).PublicKey
 
-    let realInputList = match o.SkipMissing with
-      | true -> inputList |> List.map (fun i -> new FileInfo(i)) |> List.filter (fun fi -> fi.Exists)
-      | false -> inputList |> List.map (fun i -> new FileInfo(i))
+    let fileInfoList = match o.SkipMissing with
+      | true -> argList |> Seq.map (fun i -> new FileInfo(i)) |> Seq.filter (fun fi -> fi.Exists)
+      | false -> argList |> Seq.map (fun i -> new FileInfo(i))
+
+    let realInputList = fileInfoList |> Seq.distinctBy (fun x -> x.FullName) |> List.ofSeq
 
     if (not(o.SkipMissing) && (realInputList |> Seq.exists (fun x -> not(x.Exists)))) then
       die "Some input files are missing... aborting"
 
     if List.isEmpty realInputList then
       die "None of the specified input files exist"
-
     let outputList =
-     match List.length inputList with
-       | 1 -> [output]
-       | _ -> realInputList |> List.map (fun fi -> Path.Combine(output, fi.Name))
+      if isOutputDir then
+        match List.length realInputList with
+         | 1 -> [ Path.Combine(output, realInputList.[0].Name) ]
+         | _ -> realInputList |> List.map (fun fi -> Path.Combine(output, fi.Name))
+      else
+        match List.length realInputList with
+         | 1 -> [output]
+         | _ -> raise (Exception("When processing multiple files, the last argument must be a path to a directory"))
 
     let gitInfo = ref "Unknown"
     let metaData = new Dictionary<string, Object>()
