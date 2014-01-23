@@ -6,6 +6,17 @@ gitinfoplanter.exe automates the process of reading your git repo status and emb
 
 <img src="http://damageboy.github.io/daemaged.gitinfoplanter/images/GitInfoPlanter-nuget.gif" />
 
+## Current project build status
+The [build][3] is generously hosted and run on the [CodeBetter TeamCity][7] infrastructure.
+
+| Branch | Status of last build |
+| :------ | :------: |
+| **master** | [![master][8]][9] |
+ [3]: http://teamcity.codebetter.com/viewType.html?buildTypeId=bt1027&tab=buildTypeHistoryListguest=1
+ [7]: http://codebetter.com/codebetter-ci/
+ [8]: http://teamcity.codebetter.com/app/rest/builds/buildType:(id:bt1027)/statusIcon
+ [9]: http://teamcity.codebetter.com/viewType.html?buildTypeId=bt1027&guest=1
+
 ## Git Repo String ##
 
 So how does a version string look?  
