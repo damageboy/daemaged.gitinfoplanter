@@ -10,7 +10,6 @@ open NGit.Api
 open NGit.Storage.File
 open NGit.Revwalk
 open NGit.Treewalk
-open NGit.Treewalk.Filter
 
 module gitutils =
 

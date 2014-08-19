@@ -8,15 +8,11 @@
 #r "Mono.Cecil.Pdb.dll"
 #endif
 
-open System
-open Sharpen
 open Mono.Cecil
 open Mono.Cecil.Pdb
 open System
 open System.IO
 open System.Collections.Generic
-open System.Text.RegularExpressions
-open System.Reflection;
 open System.Threading.Tasks
 open System.Runtime.InteropServices
 open Microsoft.FSharp.Text
@@ -24,11 +20,6 @@ open System.Reflection
 open Mono.Unix.Native;
 
 open NGit
-open NGit.Api
-open NGit.Storage.File
-open NGit.Revwalk
-open NGit.Treewalk
-open NGit.Treewalk.Filter
 
 #if INTERACTIVE
 #load "gitutils.fs"
@@ -427,7 +418,7 @@ module program =
         | _ -> Environment.UserDomainName + "\\" + Environment.UserName
       metaData.Add("Username", username)
       metaData.Add("Local Dir", repoRoot)
-      if String.IsNullOrWhiteSpace(o.BuildId) then
+      if not(String.IsNullOrWhiteSpace(o.BuildId)) then
         metaData.Add("Build Id", o.BuildId)
 
       gitInfo := infoStr
